@@ -15,6 +15,7 @@ const MONTHS_SHOWN = ["2026-12", "2027-01"];
 const PEOPLE = [
   { name: "amelicgr",         code: "amelicgr",         days: [] },
   { name: "bisaje_navarrete", code: "bisaje_navarrete", days: [] },
+  { name: "maawan_",          code: "maawan_",          days: ["2026-12-10 to 2026-12-13", "2027-01-14 to 2027-01-16"] },
 ];
 
 // The title at the top of the page and in the email subject.
