@@ -99,7 +99,7 @@ footer .error { max-width: 448px; margin: 6px auto 0; }
 .card p { color: var(--soft); }
 .card .error { color: var(--bad); }
 #code {
-  font: inherit; font-size: 24px; font-weight: 700; letter-spacing: .18em; text-align: center; text-transform: uppercase;
+  font: inherit; font-size: 24px; font-weight: 700; letter-spacing: .06em; text-align: center;
   width: 100%; padding: 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--bg); color: var(--ink);
 }
 #code::placeholder { letter-spacing: 0; font-weight: 400; font-size: 18px; text-transform: none; color: var(--soft); }

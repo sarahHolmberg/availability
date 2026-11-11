@@ -13,9 +13,8 @@ const MONTHS_SHOWN = ["2026-12", "2027-01"];
 //   days: the days everyone sees for this person. One day "2026-12-10", or a row of days "2026-12-10 to 2026-12-13".
 //         When someone sends new days you get an email: put those days here to show them to everyone.
 const PEOPLE = [
-  { name: "Bryan",  code: "BRYAN",  days: ["2026-12-10 to 2026-12-13", "2027-01-14 to 2027-01-16"] },
-  { name: "Bisaje", code: "BISAJE", days: ["2026-12-10 to 2026-12-13", "2027-01-14 to 2027-01-16"] },
-  { name: "Test person", code: "TEST", days: [] },
+  { name: "amelicgr",         code: "amelicgr",         days: [] },
+  { name: "bisaje_navarrete", code: "bisaje_navarrete", days: [] },
 ];
 
 // The title at the top of the page and in the email subject.
