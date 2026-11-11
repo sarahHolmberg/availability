@@ -208,7 +208,7 @@ $("leave").addEventListener("click", () => { store.del("availability.code"); me 
 // ------------------------------ The email ------------------------------
 $("send").addEventListener("click", async () => {
   if (!me) return;
-  if (!WEB3FORMS_KEY) { $("sendError").textContent = "Sending is not set up yet: the Web3Forms key is missing (config.js)."; return; }
+  if (!WEB3FORMS_KEY) { console.warn("[MAIL] NOT SENT: the Web3Forms key is missing (config.js)."); $("sendError").textContent = "Sending is not set up yet: the Web3Forms key is missing (config.js)."; return; }
   const btn = $("send"), n = picked.size;
   btn.disabled = true; btn.textContent = "Sending…"; $("sendError").textContent = "";
   const note = $("note").value.trim();
@@ -221,15 +221,27 @@ $("send").addEventListener("click", async () => {
   form.append("Available", n ? inWords(picked, true) : "No days (everything removed)");
   if (note) form.append("Note", note);
   if (n) form.append("All days", [...picked].sort().join(", "));
+  // Debug prints (browser console, F12): every step of the sending, tagged [MAIL]. The key is shown shortened.
+  const shown = Object.fromEntries(form);
+  shown.access_key = WEB3FORMS_KEY.slice(0, 8) + "…";
+  console.log("[MAIL] 1. Sending to", WEB3FORMS_URL, "at", new Date().toLocaleTimeString());
+  console.log("[MAIL] 2. What is sent:", shown);
+  const started = performance.now();
   try {
     const res = await fetch(WEB3FORMS_URL, { method: "POST", headers: { Accept: "application/json" }, body: form });
-    const data = await res.json().catch(() => ({}));
+    console.log(`[MAIL] 3. The mail service answered: ${res.status} ${res.statusText} after ${Math.round(performance.now() - started)} ms`);
+    const raw = await res.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch { console.warn("[MAIL] The answer is not JSON:", raw.slice(0, 300)); }
+    console.log("[MAIL] 4. Its answer:", data);
     if (!res.ok || !data.success) throw new Error(data.message || `The mail service answered ${res.status}.`);
+    console.log("[MAIL] 5. SENT ✓ The mail service accepted it. Check the inbox (and the spam folder).");
     $("doneText").textContent = n
       ? `Thanks ${me.name}. Your ${n} ${n === 1 ? "day has" : "days have"} been sent. They show for everyone once they are added to the page.`
       : `Thanks ${me.name}. It has been sent that you have no days.`;
     $("done").hidden = false;
   } catch (err) {
+    console.error("[MAIL] NOT SENT ✗", err.message || err, navigator.onLine ? "" : "(this device is offline)");
     $("sendError").textContent = `Not sent: ${err.message || "no connection"}. Your days are kept; try again.`;
   } finally {
     btn.textContent = "Send"; btn.disabled = false;
