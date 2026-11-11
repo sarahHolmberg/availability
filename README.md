@@ -1,21 +1,21 @@
 # Availability
 
-A small phone-first page where people show which days they are available.
+A small phone-first page that shows who is available on which days, and lets people add their own.
 
-1. They type their **code**.
-2. They see the calendar: **swipe** across days to paint them (swipe over painted days to wipe them), or **tap a weekday**
-   (Mon, Tue, ...) for that whole column.
-3. **Send** emails the days to you (through Web3Forms, free, no server).
-
-The page remembers the code and the days on that phone, so someone can come back and change them.
+- **Everyone** who opens the page sees the months, a coloured dot on each day somebody is available, and each person's
+  days in words at the top.
+- **With a code** (button at the bottom) a person sets their own days: **swipe sideways** across days to paint them, swipe over
+  painted days to remove them, or **tap a weekday** (Mon, Tue, ...) for its whole column. **Send** emails the days to
+  you (through Web3Forms, free, no server).
+- The page has no database. So after an email arrives, **put those days in `config.js`** to show them to everyone.
+  Until then the person sees their own days only on their own phone.
 
 ## Settings: `config.js`
 
-- `WEB3FORMS_KEY`: get it free at https://web3forms.com (type the email that should receive the availability; the key
-  arrives in that inbox) and paste it between the quotes. Without it, Send says it is not set up.
-- `PEOPLE`: one line per person: `{ code: "ANNA", name: "Anna" },`. The file is public, so a code keeps strangers out but
-  is not a secret.
-- `MONTHS_AHEAD`: how far ahead people can fill in.
+- `WEB3FORMS_KEY`: the key from https://web3forms.com; the emails go to the address the key was made for.
+- `MONTHS_SHOWN`: the months on the page, e.g. `["2026-12", "2027-01"]`.
+- `PEOPLE`: one line per person: `{ name: "Anna", code: "ANNA", days: ["2026-12-10 to 2026-12-13", "2027-01-05"] },`.
+  The file is public, so a code keeps strangers out but is not a secret.
 
 ## Putting it online (GitHub Pages)
 

@@ -1,17 +1,22 @@
 // ============================== SETTINGS: CHANGE HERE ==============================
 
-// The Web3Forms access key. Get it (free) at https://web3forms.com: type the email address that should
-// receive the availability, and the key arrives in that inbox. Paste it between the quotes.
-const WEB3FORMS_KEY = "";
+// The Web3Forms access key (free at https://web3forms.com: type the email address that should receive the
+// availability, and the key arrives in that inbox). Every Send goes to that address.
+const WEB3FORMS_KEY = "2fd09af2-d997-42d9-ae86-189446376e29";
 
-// The people and their codes. A person types their code to open the calendar; the name goes in the email.
-// Capitals do not matter. Note: this file is public, so a code here keeps strangers out but is not a secret.
+// The months on the page: "year-month".
+const MONTHS_SHOWN = ["2026-12", "2027-01"];
+
+// The people. Everyone who opens the page sees the names and the days listed here.
+//   code: what the person types to set their own days (capitals do not matter). This file is public, so a code
+//         keeps strangers out but is not a secret.
+//   days: the days everyone sees for this person. One day "2026-12-10", or a row of days "2026-12-10 to 2026-12-13".
+//         When someone sends new days you get an email: put those days here to show them to everyone.
 const PEOPLE = [
-  { code: "TEST", name: "Test person" },
+  { name: "Bryan",  code: "BRYAN",  days: ["2026-12-10 to 2026-12-13", "2027-01-14 to 2027-01-16"] },
+  { name: "Bisaje", code: "BISAJE", days: ["2026-12-10 to 2026-12-13", "2027-01-14 to 2027-01-16"] },
+  { name: "Test person", code: "TEST", days: [] },
 ];
-
-// How many months after this one people can fill in.
-const MONTHS_AHEAD = 3;
 
 // The title at the top of the page and in the email subject.
 const TITLE = "Availability";
