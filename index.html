@@ -14,6 +14,8 @@
   <header>
     <h1 id="title">Dance meet</h1>
     <p id="sub" class="soft"></p>
+    <!-- Where we are now: tap it to jump to that step -->
+    <button id="now" class="nowCard" type="button"></button>
   </header>
   <div class="mapBox">
     <svg id="road" aria-hidden="true" preserveAspectRatio="none"><path class="todo"/><path class="gone"/></svg>
@@ -65,6 +67,11 @@
     <p id="sendError" class="error" role="alert"></p>
   </footer>
 </aside>
+
+<!-- More about a step (tap a step on the road) -->
+<div id="info" class="gate" hidden>
+  <div id="infoCard" class="card infoCard"></div>
+</div>
 
 <!-- The code -->
 <div id="gate" class="gate" hidden>

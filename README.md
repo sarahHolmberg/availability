@@ -2,8 +2,11 @@
 
 A small phone-first page for the dance meet.
 
-- **The main page is the road**: the steps to the day (days shown, the day explained, video call, 25% paid, tickets
-  bought, videographer booked, everybody agreed) and, at each stop, the people who are there now.
+- **The main page is the road**: the steps to the day (days shown, the day explained, video call, food preference, 25% paid, tickets
+  bought, videographer booked, everybody agreed) and, at each stop, the people who are there now. The stop we are at
+  is the big green one (also named in the card at the top); passed stops have a tick.
+- **Tap a step** for more about it. The **food step** asks where a person eats (Max, McDonald's, Burger King, kebab),
+  what they usually order and their favourite soda, and emails the answers to you (needs their code).
 - **The 📅 Days tab** on the right edge slides the side pane in (and out again). In it: the months, a coloured dot on
   each day somebody is available, and each person's days in words.
 - **With a code** (button at the bottom of the pane) a person sets their own days: **swipe sideways** across days to
@@ -18,7 +21,7 @@ A small phone-first page for the dance meet.
 - `MONTHS_SHOWN`: the months on the page, e.g. `["2026-12", "2027-01"]`.
 - `PEOPLE`: one line per person: `{ name: "Anna", code: "ANNA", done: 2, days: ["2026-12-10 to 2026-12-13", "2027-01-05"] },`.
   `done` = how many steps of the road the person has finished (someone with days listed has always finished step 1).
-- `STEPS`: the steps of the road, in order (picture, short name, one sentence).
+- `STEPS`: the steps of the road, in order (picture, short name, one sentence, and the longer text behind a tap).
   The file is public, so a code keeps strangers out but is not a secret.
 
 ## Putting it online (GitHub Pages)

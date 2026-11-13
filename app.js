@@ -55,24 +55,48 @@ let picked = new Set();   // my days
 // ------------------------------ The road (main page) ------------------------------
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
-/** The stops of the road, each with the people who are there now. Green up to where you are (or, just looking, the furthest person). */
+/** Where is "now" on the road? With a code: your own stop. Just looking: the stop with the most people (the furthest, if equal). */
+function nowAt() {
+  if (me) return me.done;
+  let best = 0, most = 0;
+  for (let i = 0; i <= STEPS.length; i++) {
+    const n = PEOPLE.filter((p) => p.done === i).length;
+    if (n && n >= most) { most = n; best = i; }
+  }
+  return best;
+}
+const allStops = () => [{ icon: "🚩", title: "Start", text: "Show the days you are free to set off.",
+  more: "Everybody starts here. Open the 📅 Days tab, type your code and paint the days you are free: that takes you to step 1." }, ...STEPS];
+const stepName = (i) => (i ? `Step ${i} of ${STEPS.length}` : "Start");
+
+/** The stops of the road. Passed stops get a tick, the stop we are at NOW is the big green one, the rest is still grey. */
 function drawMap() {
-  const map = $("map");
+  const map = $("map"), now = nowAt(), stops = allStops();
   map.textContent = "";
-  const upTo = me ? me.done : Math.max(0, ...PEOPLE.map((p) => p.done));
   $("sub").textContent = !me ? "The road to the day, and where everyone is on it."
     : me.done >= STEPS.length ? `Hi ${me.name}. You have finished every step.`
     : `Hi ${me.name}. Your next step: ${STEPS[me.done].title}.`;
-  const stops = [{ icon: "🚩", title: "Start", text: "Show the days you are free to set off." }, ...STEPS];
+
+  // The card at the top: where we are now, and a bar with one piece per step
+  const card = $("now");
+  card.textContent = "";
+  card.append(el("span", "nowLabel", me ? "📍 You are here" : "📍 We are here"), el("b", "", `${stepName(now)}: ${stops[now].title}`));
+  const bar = el("span", "nowBar");
+  STEPS.forEach((_, i) => bar.append(el("i", i < now ? "full" : "")));
+  card.append(bar);
+  card.onclick = () => map.children[now].scrollIntoView({ behavior: "smooth", block: "center" });
+
   stops.forEach((s, i) => {
     const here = PEOPLE.filter((p) => p.done === i);
-    const row = el("li", "stop " + (i % 2 ? "right" : "left") + (i <= upTo ? " reached" : "") + (here.includes(me) ? " mine" : ""));
-    const pin = el("div", "pin", s.icon);
-    pin.setAttribute("aria-hidden", "true");
-    const body = el("div", "about");
-    body.append(el("p", "nr", i ? `Step ${i} of ${STEPS.length}` : "Before step 1"), el("h3", "", s.title), el("p", "what", s.text));
+    const row = el("li", "stop " + (i % 2 ? "right" : "left") + (i < now ? " passed" : i === now ? " now" : ""));
+    const btn = el("button"); btn.type = "button";
+    btn.addEventListener("click", () => info(i));
+    const pin = el("span", "pin", s.icon);
+    const body = el("span", "about");
+    body.append(el("span", "nr", i === now ? (me ? "📍 You are here" : "📍 We are here") : i < now ? `✓ ${stepName(i)}` : stepName(i)),
+      el("b", "name", s.title), el("span", "what", s.text));
     if (here.length) {
-      const who = el("div", "here");
+      const who = el("span", "here");
       for (const p of here) {
         const chip = el("span", "chip" + (p === me ? " me" : ""));
         chip.style.setProperty("--c", p.colour);
@@ -81,10 +105,89 @@ function drawMap() {
       }
       body.append(who);
     }
-    row.append(pin, body);
+    body.append(el("span", "moreLink", "More ›"));
+    btn.append(pin, body);
+    row.append(btn);
     map.append(row);
   });
-  drawRoad(upTo);
+  drawRoad(now);
+  if (shownStep !== null) info(shownStep); // the step window is open: bring it up to date
+}
+
+// ------------------------------ More about a step (tap a step) ------------------------------
+let shownStep = null; // the step whose window is open, or null
+function info(i) {
+  shownStep = i;
+  const s = allStops()[i], now = nowAt(), box = $("infoCard");
+  box.textContent = "";
+  const here = PEOPLE.filter((p) => p.done === i);
+  box.append(el("div", "bigIcon", s.icon), el("p", "nr", stepName(i)), el("h2", "", s.title),
+    el("p", "state " + (i < now ? "passed" : i === now ? "now" : ""), i < now ? "✓ Done" : i === now ? (me ? "📍 You are here" : "📍 We are here") : "Still to come"),
+    el("p", "", s.more || s.text));
+  if (here.length) box.append(el("p", "soft", `Here now: ${here.map((p) => (p === me ? "you" : p.name)).join(", ")}`));
+  if (s.food) box.append(foodForm(s));
+  const close = el("button", "link", "Close"); close.type = "button";
+  close.addEventListener("click", closeInfo);
+  box.append(close);
+  $("info").hidden = false;
+}
+function closeInfo() { shownStep = null; $("info").hidden = true; }
+$("info").addEventListener("click", (e) => { if (e.target === $("info")) closeInfo(); });
+
+/** The food step: tick the places, write the usual order and the favourite soda, and Send emails it. Needs your code. */
+function foodForm(step) {
+  const form = el("form", "food");
+  if (!me) {
+    const b = el("button", "primary", "Type your code to answer"); b.type = "button";
+    b.addEventListener("click", askCode);
+    form.append(b);
+    return form;
+  }
+  const saveKey = "availability.food." + me.code.toUpperCase();
+  let saved = {};
+  try { saved = JSON.parse(store.get(saveKey)) || {}; } catch {}
+  const ticked = new Set(saved.places || []);
+  const places = el("div", "places");
+  for (const name of step.food) {
+    const b = el("button", "", name); b.type = "button";
+    b.setAttribute("aria-pressed", ticked.has(name));
+    b.addEventListener("click", () => { ticked.has(name) ? ticked.delete(name) : ticked.add(name); b.setAttribute("aria-pressed", ticked.has(name)); });
+    places.append(b);
+  }
+  const field = (label, value, hint) => {
+    const l = el("label"), input = el("input");
+    input.value = value || ""; input.placeholder = hint; input.maxLength = 200;
+    l.append(el("span", "", label), input);
+    form.append(l);
+    return input;
+  };
+  form.append(el("p", "q", "Where do you eat? Tick all that fit."), places);
+  const order = field("What do you usually order there?", saved.order, "e.g. cheeseburger meal, no onion");
+  const soda = field("Your favourite soda", saved.soda, "e.g. Fanta");
+  const msg = el("p", "error"), send = el("button", "primary", "Send my food preference");
+  send.type = "submit";
+  form.append(msg, send);
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msg.className = "error";
+    if (!ticked.size && !order.value.trim() && !soda.value.trim()) { msg.textContent = "Tick a place or write something first."; return; }
+    const answer = { places: [...ticked], order: order.value.trim(), soda: soda.value.trim() };
+    store.set(saveKey, JSON.stringify(answer));
+    send.disabled = true; send.textContent = "Sending…"; msg.textContent = "";
+    try {
+      await mail(`${TITLE}: food preference of ${me.name}`, {
+        "Eats at": answer.places.join(", ") || "(nothing ticked)",
+        "Usual order": answer.order || "(not written)",
+        "Favourite soda": answer.soda || "(not written)",
+      });
+      msg.className = "ok"; msg.textContent = "✓ Sent. Thank you!";
+    } catch (err) {
+      msg.textContent = `Not sent: ${err.message || "no connection"}. Try again.`;
+    } finally {
+      send.disabled = false; send.textContent = "Send my food preference";
+    }
+  });
+  return form;
 }
 
 /** The line that joins the stops: it winds from circle to circle, solid green as far as upTo, dotted after that. */
@@ -253,14 +356,13 @@ function open(p) {
   draw();
 }
 
-$("join").addEventListener("click", () => {
-  $("gate").hidden = false; $("gateError").textContent = ""; $("code").value = ""; $("code").focus();
-});
+function askCode() { $("gate").hidden = false; $("gateError").textContent = ""; $("code").value = ""; $("code").focus(); }
+$("join").addEventListener("click", askCode);
 $("gateClose").addEventListener("click", () => { $("gate").hidden = true; });
 $("gate").addEventListener("click", (e) => { if (e.target === $("gate")) $("gate").hidden = true; });
 addEventListener("keydown", (e) => { // Escape closes the window on top: first the code window, then the side pane
   if (e.key !== "Escape") return;
-  if (!$("gate").hidden) $("gate").hidden = true; else if ($("done").hidden) pane(false);
+  if (!$("gate").hidden) $("gate").hidden = true; else if (shownStep !== null) closeInfo(); else if ($("done").hidden) pane(false);
 });
 
 $("gateForm").addEventListener("submit", (e) => {
@@ -275,22 +377,17 @@ $("gateForm").addEventListener("submit", (e) => {
 $("leave").addEventListener("click", () => { store.del("availability.code"); me = null; picked = new Set(); draw(); });
 
 // ------------------------------ The email ------------------------------
-$("send").addEventListener("click", async () => {
-  if (!me) return;
-  if (!WEB3FORMS_KEY) { console.warn("[MAIL] NOT SENT: the Web3Forms key is missing (config.js)."); $("sendError").textContent = "Sending is not set up yet: the Web3Forms key is missing (config.js)."; return; }
-  const btn = $("send"), n = picked.size;
-  btn.disabled = true; btn.textContent = "Sending…"; $("sendError").textContent = "";
-  const note = $("note").value.trim();
+/** Send one email through Web3Forms: a subject and the lines { label: text }. Throws (with the reason) when it is not sent.
+ *  Debug prints (browser console, F12): every step of the sending, tagged [MAIL]. The key is shown shortened. */
+async function mail(subject, lines) {
+  if (!WEB3FORMS_KEY) { console.warn("[MAIL] NOT SENT: the Web3Forms key is missing (config.js)."); throw new Error("sending is not set up yet (the Web3Forms key is missing in config.js)"); }
   const form = new FormData();
   form.append("access_key", WEB3FORMS_KEY);
-  form.append("subject", `${TITLE}: ${me.name} (${n} ${n === 1 ? "day" : "days"})`);
+  form.append("subject", subject);
   form.append("from_name", TITLE);
   form.append("Name", me.name);
   form.append("Code", me.code);
-  form.append("Available", n ? inWords(picked, true) : "No days (everything removed)");
-  if (note) form.append("Note", note);
-  if (n) form.append("All days", [...picked].sort().join(", "));
-  // Debug prints (browser console, F12): every step of the sending, tagged [MAIL]. The key is shown shortened.
+  for (const [label, text] of Object.entries(lines)) form.append(label, text);
   const shown = Object.fromEntries(form);
   shown.access_key = WEB3FORMS_KEY.slice(0, 8) + "…";
   console.log("[MAIL] 1. Sending to", WEB3FORMS_URL, "at", new Date().toLocaleTimeString());
@@ -305,12 +402,27 @@ $("send").addEventListener("click", async () => {
     console.log("[MAIL] 4. Its answer:", data);
     if (!res.ok || !data.success) throw new Error(data.message || `The mail service answered ${res.status}.`);
     console.log("[MAIL] 5. SENT ✓ The mail service accepted it. Check the inbox (and the spam folder).");
+  } catch (err) {
+    console.error("[MAIL] NOT SENT ✗", err.message || err, navigator.onLine ? "" : "(this device is offline)");
+    throw err;
+  }
+}
+
+$("send").addEventListener("click", async () => {
+  if (!me) return;
+  const btn = $("send"), n = picked.size;
+  btn.disabled = true; btn.textContent = "Sending…"; $("sendError").textContent = "";
+  const note = $("note").value.trim();
+  const lines = { Available: n ? inWords(picked, true) : "No days (everything removed)" };
+  if (note) lines.Note = note;
+  if (n) lines["All days"] = [...picked].sort().join(", ");
+  try {
+    await mail(`${TITLE}: ${me.name} (${n} ${n === 1 ? "day" : "days"})`, lines);
     $("doneText").textContent = n
       ? `Thanks ${me.name}. Your ${n} ${n === 1 ? "day has" : "days have"} been sent. They show for everyone once they are added to the page.`
       : `Thanks ${me.name}. It has been sent that you have no days.`;
     $("done").hidden = false;
   } catch (err) {
-    console.error("[MAIL] NOT SENT ✗", err.message || err, navigator.onLine ? "" : "(this device is offline)");
     $("sendError").textContent = `Not sent: ${err.message || "no connection"}. Your days are kept; try again.`;
   } finally {
     btn.textContent = "Send"; btn.disabled = false;

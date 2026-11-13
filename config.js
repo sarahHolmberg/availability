@@ -20,16 +20,28 @@ const PEOPLE = [
   { name: "maawan_",          code: "maawan_",          done: 1, days: ["2026-12-10 to 2026-12-13", "2027-01-14 to 2027-01-16"] },
 ];
 
-// The road on the main page: the steps, in order. icon = the picture in the circle, title = the short name,
-// text = one sentence about it.
+// The road on the main page: the steps, in order.
+//   icon = the picture in the circle, title = the short name, text = one sentence about it,
+//   more = the longer explanation a person sees when they tap the step,
+//   food = (only for the food step) the places a person can tick; their answers are emailed to you.
 const STEPS = [
-  { icon: "📅", title: "Days shown",          text: "You have shown the days you are free." },
-  { icon: "📝", title: "The day explained",   text: "What is going to happen on the day has been explained to you." },
-  { icon: "📞", title: "Video call",          text: "We spoke on a video call about the dance meet and answered all your questions." },
-  { icon: "💸", title: "25% paid",            text: "You got 25% of the money you get for the day." },
-  { icon: "🎫", title: "Tickets bought",      text: "Your tickets to the town where the dance takes place are bought." },
-  { icon: "🎥", title: "Videographer booked", text: "The videographer for the day is booked." },
-  { icon: "🤝", title: "Everybody agreed",    text: "Everybody agrees on what will happen and on the dates to be there." },
+  { icon: "📅", title: "Days shown", text: "You have shown the days you are free.",
+    more: "Open the 📅 Days tab, type your code and paint the days you can come. Press Send. You can change your days later and send again." },
+  { icon: "📝", title: "The day explained", text: "What is going to happen on the day has been explained to you.",
+    more: "You get the plan for the day: where to be, at what time, what we film and how long it takes." },
+  { icon: "📞", title: "Video call", text: "We spoke on a video call about the dance meet and answered all your questions.",
+    more: "A short video call where everything about the dance meet is explained once more. Bring every question you have: this is the moment to ask." },
+  { icon: "🍔", title: "Food preference", text: "You told us what you like to eat and drink.",
+    more: "Do you eat at Max, McDonald's, Burger King, or do you prefer kebab? Tell us what you usually order there and your favourite soda, so the right food is there on the day.",
+    food: ["Max", "McDonald's", "Burger King", "Kebab"] },
+  { icon: "💸", title: "25% paid", text: "You got 25% of the money you get for the day.",
+    more: "A quarter of your money for the day is paid to you before the day. You get the rest on the day itself." },
+  { icon: "🎫", title: "Tickets bought", text: "Your tickets to the town where the dance takes place are bought.",
+    more: "We buy your tickets to the town where the dance takes place, and you get them from us." },
+  { icon: "🎥", title: "Videographer booked", text: "The videographer for the day is booked.",
+    more: "The person who films the dance is booked for the dates everybody can come." },
+  { icon: "🤝", title: "Everybody agreed", text: "Everybody agrees on what will happen and on the dates to be there.",
+    more: "The last step: everybody has said yes to the plan and to the dates. After this, we meet and dance." },
 ];
 
 // The title at the top of the page and in the email subject.

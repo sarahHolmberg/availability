@@ -39,31 +39,80 @@ main header p { font-size: 15px; margin-top: 2px; }
 #road path { fill: none; stroke-linecap: round; }
 #road .todo { stroke: var(--line); stroke-width: 6; stroke-dasharray: 1 13; stroke: var(--soft); opacity: .55; }
 #road .gone { stroke: var(--go); stroke-width: 6; }
-.map { position: relative; list-style: none; display: grid; gap: 58px; }
-.stop { display: flex; align-items: center; gap: 6px; min-height: 96px; }
-.stop.left { padding-left: 6%; }
-.stop.right { flex-direction: row-reverse; padding-right: 6%; text-align: right; }
-.pin {
-  flex: none; width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; font-size: 28px;
-  background: var(--card); border: 3px solid var(--line); filter: grayscale(1); box-shadow: 0 0 0 6px var(--bg);
+/* The card at the top: where we are now */
+.nowCard {
+  display: grid; gap: 2px; width: 100%; margin-top: 14px; padding: 12px 14px; border-radius: 16px; text-align: left;
+  background: var(--go); color: var(--go-ink);
 }
-.stop.reached .pin { border-color: var(--go); background: var(--go-soft); filter: none; }
-.stop.mine .pin { box-shadow: 0 0 0 6px var(--bg), 0 0 0 9px var(--go); animation: here 1.8s ease-in-out infinite; }
-@keyframes here { 50% { transform: scale(1.07); } }
-.about { min-width: 0; background: var(--bg); border-radius: 14px; padding: 8px 10px; } /* the road passes behind the text */
+.nowLabel { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .9; }
+.nowCard b { font-size: 19px; line-height: 1.25; }
+.nowBar { display: flex; gap: 4px; margin-top: 8px; }
+.nowBar i { flex: 1; height: 6px; border-radius: 3px; background: var(--go-ink); opacity: .3; }
+.nowBar i.full { opacity: 1; }
+
+/* The stops. Three looks: passed (green tick), now (the big green one), still to come (grey) */
+.map { position: relative; list-style: none; display: grid; gap: 58px; }
+.stop button { display: flex; align-items: center; gap: 6px; width: 100%; min-height: 96px; text-align: left; border-radius: 18px; }
+.stop.left button { padding-left: 6%; }
+.stop.right button { flex-direction: row-reverse; padding-right: 6%; text-align: right; }
+.pin {
+  position: relative; flex: none; width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; font-size: 28px;
+  background: var(--card); border: 3px solid var(--line); box-shadow: 0 0 0 6px var(--bg);
+}
+.stop:not(.passed):not(.now) .pin { filter: grayscale(1); }
+.stop.passed .pin { border-color: var(--go); background: var(--go-soft); }
+.stop.passed .pin::after {
+  content: "✓"; position: absolute; right: -6px; top: -6px; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--go); color: var(--go-ink); font-size: 15px; font-weight: 700; display: grid; place-items: center;
+  border: 2px solid var(--bg);
+}
+.stop.now .pin {
+  width: 84px; height: 84px; font-size: 38px; border: 5px solid var(--go); background: var(--card);
+  box-shadow: 0 0 0 6px var(--bg), 0 0 0 10px var(--go-soft); animation: here 1.6s ease-in-out infinite;
+}
+@keyframes here { 50% { box-shadow: 0 0 0 6px var(--bg), 0 0 0 20px var(--go-soft); } }
+.about { display: grid; min-width: 0; background: var(--bg); border-radius: 14px; padding: 8px 10px; } /* the road passes behind the text */
 .about .nr { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--soft); }
-.stop.reached .nr { color: var(--go); }
-.about h3 { font-size: 18px; line-height: 1.25; }
+.stop.passed .nr { color: var(--go); }
+.about .name { font-size: 18px; line-height: 1.25; }
 .about .what { font-size: 14px; color: var(--soft); }
+.moreLink { font-size: 13px; font-weight: 700; color: var(--go); margin-top: 4px; }
+.stop:not(.passed):not(.now) .about { opacity: .75; }
+.stop.now .about { background: var(--go); color: var(--go-ink); padding: 12px 14px; box-shadow: 0 8px 22px rgba(0, 0, 0, .18); }
+.stop.now .about .nr { color: inherit; font-size: 13px; }
+.stop.now .about .name { font-size: 21px; }
+.stop.now .about .what, .stop.now .moreLink { color: inherit; opacity: .9; }
 .here { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
 .stop.right .here { justify-content: flex-end; }
 .chip {
   display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 10px 4px 7px; border-radius: 99px;
-  background: var(--card); border: 1.5px solid var(--c); font-size: 13px; font-weight: 700; overflow-wrap: anywhere; text-align: left;
+  background: var(--card); color: var(--ink); border: 1.5px solid var(--c); font-size: 13px; font-weight: 700;
+  overflow-wrap: anywhere; text-align: left;
 }
 .chip i { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
-.chip.me { background: var(--go); border-color: var(--go); color: var(--go-ink); }
-.chip.me i { background: var(--go-ink); }
+.chip.me { border-color: var(--card); }
+
+/* More about a step (the window after a tap on a step) */
+.infoCard { max-height: calc(100dvh - 32px); overflow-y: auto; gap: 8px; }
+.bigIcon { font-size: 44px; line-height: 1; }
+.infoCard .nr { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.infoCard .state { justify-self: center; padding: 3px 12px; border-radius: 99px; font-size: 13px; font-weight: 700; background: var(--line); color: var(--ink); }
+.infoCard .state.passed { background: var(--go-soft); }
+.infoCard .state.now { background: var(--go); color: var(--go-ink); }
+.infoCard > p:not(.nr):not(.state):not(.soft) { color: var(--ink); }
+.food { display: grid; gap: 10px; margin-top: 6px; text-align: left; }
+.food .q, .food label span { font-size: 14px; font-weight: 700; color: var(--ink); }
+.places { display: flex; flex-wrap: wrap; gap: 6px; }
+.places button { padding: 9px 14px; border-radius: 99px; border: 2px solid var(--line); background: var(--bg); font-weight: 600; }
+.places button[aria-pressed="true"] { background: var(--go); border-color: var(--go); color: var(--go-ink); }
+.places button[aria-pressed="true"]::before { content: "✓ "; }
+.food label { display: grid; gap: 4px; }
+.food input {
+  font: inherit; font-size: 16px; width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink);
+}
+.food .ok { color: var(--go); font-size: 14px; font-weight: 700; }
+.food .ok:empty { display: none; }
 
 /* The tab on the right edge, and the side pane it opens */
 .tab {
