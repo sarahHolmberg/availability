@@ -30,11 +30,62 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 .error:empty { display: none; }
 :focus-visible { outline: 3px solid var(--go); outline-offset: 2px; }
 
-/* The page */
-main { max-width: 480px; margin: 0 auto; padding: 18px 16px 130px; }
-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.hello { color: var(--soft); font-size: 15px; }
-header h1 { font-size: 26px; letter-spacing: -.02em; line-height: 1.2; }
+/* The main page: the road */
+main { max-width: 480px; margin: 0 auto; padding: 18px 16px 110px; }
+main header h1 { font-size: 30px; letter-spacing: -.02em; line-height: 1.15; }
+main header p { font-size: 15px; margin-top: 2px; }
+.mapBox { position: relative; margin-top: 22px; }
+#road { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+#road path { fill: none; stroke-linecap: round; }
+#road .todo { stroke: var(--line); stroke-width: 6; stroke-dasharray: 1 13; stroke: var(--soft); opacity: .55; }
+#road .gone { stroke: var(--go); stroke-width: 6; }
+.map { position: relative; list-style: none; display: grid; gap: 58px; }
+.stop { display: flex; align-items: center; gap: 6px; min-height: 96px; }
+.stop.left { padding-left: 6%; }
+.stop.right { flex-direction: row-reverse; padding-right: 6%; text-align: right; }
+.pin {
+  flex: none; width: 66px; height: 66px; border-radius: 50%; display: grid; place-items: center; font-size: 28px;
+  background: var(--card); border: 3px solid var(--line); filter: grayscale(1); box-shadow: 0 0 0 6px var(--bg);
+}
+.stop.reached .pin { border-color: var(--go); background: var(--go-soft); filter: none; }
+.stop.mine .pin { box-shadow: 0 0 0 6px var(--bg), 0 0 0 9px var(--go); animation: here 1.8s ease-in-out infinite; }
+@keyframes here { 50% { transform: scale(1.07); } }
+.about { min-width: 0; background: var(--bg); border-radius: 14px; padding: 8px 10px; } /* the road passes behind the text */
+.about .nr { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--soft); }
+.stop.reached .nr { color: var(--go); }
+.about h3 { font-size: 18px; line-height: 1.25; }
+.about .what { font-size: 14px; color: var(--soft); }
+.here { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.stop.right .here { justify-content: flex-end; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 4px 10px 4px 7px; border-radius: 99px;
+  background: var(--card); border: 1.5px solid var(--c); font-size: 13px; font-weight: 700; overflow-wrap: anywhere; text-align: left;
+}
+.chip i { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.chip.me { background: var(--go); border-color: var(--go); color: var(--go-ink); }
+.chip.me i { background: var(--go-ink); }
+
+/* The tab on the right edge, and the side pane it opens */
+.tab {
+  position: fixed; right: 0; bottom: calc(22px + env(safe-area-inset-bottom)); z-index: 2;
+  background: var(--go); color: var(--go-ink); font-weight: 700; font-size: 17px;
+  padding: 14px 16px 14px 18px; border-radius: 18px 0 0 18px; box-shadow: 0 6px 20px rgba(0, 0, 0, .25);
+}
+.shade { position: fixed; inset: 0; z-index: 3; background: rgba(20, 24, 21, .5); opacity: 0; pointer-events: none; transition: opacity .25s; }
+.pane {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 4; width: min(92vw, 440px); background: var(--bg);
+  border-left: 1px solid var(--line); display: flex; flex-direction: column;
+  transform: translateX(100%); visibility: hidden; transition: transform .28s ease, visibility .28s;
+}
+body.paneOpen { overflow: hidden; }
+body.paneOpen .pane { transform: none; visibility: visible; box-shadow: -12px 0 40px rgba(0, 0, 0, .25); }
+body.paneOpen .shade { opacity: 1; pointer-events: auto; }
+.paneTop { display: flex; align-items: center; gap: 4px; padding: 14px 10px 10px 16px; border-bottom: 1px solid var(--line); }
+.paneTop > div { flex: 1; min-width: 0; }
+.paneTop h2 { font-size: 22px; letter-spacing: -.02em; line-height: 1.2; }
+.hello { color: var(--soft); font-size: 14px; }
+.close { width: 44px; height: 44px; border-radius: 50%; font-size: 18px; background: var(--card); border: 1px solid var(--line); }
+.paneBody { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 20px; }
 
 /* Who is on the calendar */
 .legend { list-style: none; display: grid; gap: 6px; margin: 14px 0; }
@@ -78,13 +129,10 @@ body.editing .day:not(.past) { cursor: pointer; }
   border-radius: 12px; padding: 10px 12px; resize: vertical;
 }
 
-/* The bar at the bottom */
-footer {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 3; background: var(--card); border-top: 1px solid var(--line);
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-}
-.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 448px; margin: 0 auto; }
-footer .error { max-width: 448px; margin: 6px auto 0; }
+/* The bar at the bottom of the side pane */
+.pane footer { background: var(--card); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pane footer .error { margin-top: 6px; }
 .count b { font-size: 24px; font-variant-numeric: tabular-nums; }
 
 /* The code window and the "sent" window */

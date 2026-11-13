@@ -4,47 +4,67 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f6f1e7">
-<title>Availability</title>
+<title>Dance meet</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<!-- The main page: the road to the dance meet -->
 <main>
   <header>
-    <div>
-      <p id="hello" class="hello">Who is available, and when</p>
-      <h1 id="title">Availability</h1>
-    </div>
-    <button id="leave" class="link" type="button" hidden>Not you?</button>
+    <h1 id="title">Dance meet</h1>
+    <p id="sub" class="soft"></p>
   </header>
-
-  <!-- Who is on the calendar: a colour, a name and their days in words -->
-  <ul id="legend" class="legend"></ul>
-
-  <p id="hint" class="hint" hidden><b>Swipe sideways</b> across days to paint yours. Swipe over painted days to remove them. <b>Tap</b> a weekday (Mon, Tue…) for its whole column.</p>
-
-  <!-- The months are drawn here -->
-  <div id="months"></div>
-
-  <label id="noteBox" class="note" hidden>
-    <span>Anything to add? (optional)</span>
-    <textarea id="note" rows="2" maxlength="500" placeholder="e.g. only after 4 pm on the 12th"></textarea>
-  </label>
+  <div class="mapBox">
+    <svg id="road" aria-hidden="true" preserveAspectRatio="none"><path class="todo"/><path class="gone"/></svg>
+    <ol id="map" class="map"></ol>
+  </div>
 </main>
 
-<footer>
-  <!-- Before the code -->
-  <div id="barOut" class="bar">
-    <span class="soft">Add your own days</span>
-    <button id="join" class="primary" type="button">I have a code</button>
+<!-- The tab on the right edge: opens and closes the side pane -->
+<button id="tab" class="tab" type="button" aria-controls="pane" aria-expanded="false"><span aria-hidden="true">📅</span> Days</button>
+<div id="shade" class="shade"></div>
+
+<!-- The side pane: the calendar -->
+<aside id="pane" class="pane" aria-label="Available days">
+  <div class="paneTop">
+    <div>
+      <p id="hello" class="hello">Who is free, and when</p>
+      <h2>Available days</h2>
+    </div>
+    <button id="leave" class="link" type="button" hidden>Not you?</button>
+    <button id="paneClose" class="close" type="button" aria-label="Close">✕</button>
   </div>
-  <!-- After the code -->
-  <div id="barIn" class="bar" hidden>
-    <div class="count"><b id="count">0</b> <span id="countLabel" class="soft">days</span><button id="clear" class="link" type="button">Clear</button></div>
-    <button id="send" class="primary" type="button">Send</button>
+
+  <div class="paneBody">
+    <!-- Who is on the calendar: a colour, a name and their days in words -->
+    <ul id="legend" class="legend"></ul>
+
+    <p id="hint" class="hint" hidden><b>Swipe sideways</b> across days to paint yours. Swipe over painted days to remove them. <b>Tap</b> a weekday (Mon, Tue…) for its whole column.</p>
+
+    <!-- The months are drawn here -->
+    <div id="months"></div>
+
+    <label id="noteBox" class="note" hidden>
+      <span>Anything to add? (optional)</span>
+      <textarea id="note" rows="2" maxlength="500" placeholder="e.g. only after 4 pm on the 12th"></textarea>
+    </label>
   </div>
-  <p id="sendError" class="error" role="alert"></p>
-</footer>
+
+  <footer>
+    <!-- Before the code -->
+    <div id="barOut" class="bar">
+      <span class="soft">Add your own days</span>
+      <button id="join" class="primary" type="button">I have a code</button>
+    </div>
+    <!-- After the code -->
+    <div id="barIn" class="bar" hidden>
+      <div class="count"><b id="count">0</b> <span id="countLabel" class="soft">days</span><button id="clear" class="link" type="button">Clear</button></div>
+      <button id="send" class="primary" type="button">Send</button>
+    </div>
+    <p id="sendError" class="error" role="alert"></p>
+  </footer>
+</aside>
 
 <!-- The code -->
 <div id="gate" class="gate" hidden>

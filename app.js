@@ -1,5 +1,5 @@
-// The availability page. Everyone sees the months and who is available (from config.js). With a code you set your
-// own days, and Send emails them (Web3Forms). Settings are in config.js.
+// The main page is the road: the steps to the dance meet and where everyone is on it (from config.js).
+// The side pane holds the calendar: who is available, and with a code you set your own days; Send emails them (Web3Forms).
 const $ = (id) => document.getElementById(id);
 const WEB3FORMS_URL = "https://api.web3forms.com/submit";
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -29,7 +29,11 @@ function listDays(days) {
   }
   return out;
 }
-PEOPLE.forEach((p, i) => { p.list = listDays(p.days); p.colour = `var(--p${i % 5})`; });
+PEOPLE.forEach((p, i) => {
+  p.list = listDays(p.days);
+  p.colour = `var(--p${i % 5})`;
+  p.done = Math.min(STEPS.length, Math.max(Number(p.done) || 0, p.list.length ? 1 : 0)); // days shown = step 1 finished
+});
 
 /** Days as words: "10-13 Dec, 14-16 Jan" (short), or one line per month for the email. */
 function inWords(days, forEmail) {
@@ -48,11 +52,73 @@ function inWords(days, forEmail) {
 let me = null;            // the person whose code was typed (one of PEOPLE), or null = just looking
 let picked = new Set();   // my days
 
-// ------------------------------ The page ------------------------------
+// ------------------------------ The road (main page) ------------------------------
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+/** The stops of the road, each with the people who are there now. Green up to where you are (or, just looking, the furthest person). */
+function drawMap() {
+  const map = $("map");
+  map.textContent = "";
+  const upTo = me ? me.done : Math.max(0, ...PEOPLE.map((p) => p.done));
+  $("sub").textContent = !me ? "The road to the day, and where everyone is on it."
+    : me.done >= STEPS.length ? `Hi ${me.name}. You have finished every step.`
+    : `Hi ${me.name}. Your next step: ${STEPS[me.done].title}.`;
+  const stops = [{ icon: "🚩", title: "Start", text: "Show the days you are free to set off." }, ...STEPS];
+  stops.forEach((s, i) => {
+    const here = PEOPLE.filter((p) => p.done === i);
+    const row = el("li", "stop " + (i % 2 ? "right" : "left") + (i <= upTo ? " reached" : "") + (here.includes(me) ? " mine" : ""));
+    const pin = el("div", "pin", s.icon);
+    pin.setAttribute("aria-hidden", "true");
+    const body = el("div", "about");
+    body.append(el("p", "nr", i ? `Step ${i} of ${STEPS.length}` : "Before step 1"), el("h3", "", s.title), el("p", "what", s.text));
+    if (here.length) {
+      const who = el("div", "here");
+      for (const p of here) {
+        const chip = el("span", "chip" + (p === me ? " me" : ""));
+        chip.style.setProperty("--c", p.colour);
+        chip.append(el("i"), p === me ? `${p.name} (you)` : p.name);
+        who.append(chip);
+      }
+      body.append(who);
+    }
+    row.append(pin, body);
+    map.append(row);
+  });
+  drawRoad(upTo);
+}
+
+/** The line that joins the stops: it winds from circle to circle, solid green as far as upTo, dotted after that. */
+function drawRoad(upTo) {
+  const map = $("map"), road = $("road"), box = map.getBoundingClientRect();
+  const at = [...map.querySelectorAll(".pin")].map((p) => { const r = p.getBoundingClientRect(); return [r.left - box.left + r.width / 2, r.top - box.top + r.height / 2]; });
+  const line = (pts) => pts.map(([x, y], i) => {
+    if (!i) return `M${x} ${y}`;
+    const [px, py] = pts[i - 1], mid = (py + y) / 2;
+    return `C${px} ${mid} ${x} ${mid} ${x} ${y}`;
+  }).join(" ");
+  road.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
+  road.querySelector(".todo").setAttribute("d", line(at));
+  road.querySelector(".gone").setAttribute("d", line(at.slice(0, upTo + 1)));
+}
+addEventListener("resize", () => drawMap());
+
+// ------------------------------ The side pane ------------------------------
+function pane(open) {
+  document.body.classList.toggle("paneOpen", open);
+  $("pane").inert = !open;
+  $("tab").setAttribute("aria-expanded", open);
+  if (open) $("paneClose").focus({ preventScroll: true });
+}
+$("tab").addEventListener("click", () => pane(!document.body.classList.contains("paneOpen")));
+$("paneClose").addEventListener("click", () => pane(false));
+$("shade").addEventListener("click", () => pane(false));
+
+// ------------------------------ The calendar (in the side pane) ------------------------------
 function draw() {
+  drawMap();
   const others = PEOPLE.filter((p) => p !== me);
   document.body.classList.toggle("editing", !!me);
-  $("hello").textContent = me ? `Hi ${me.name}, paint your days` : "Who is available, and when";
+  $("hello").textContent = me ? `Hi ${me.name}, paint your days` : "Who is free, and when";
   $("leave").hidden = $("hint").hidden = $("noteBox").hidden = $("barIn").hidden = !me;
   $("barOut").hidden = !!me;
 
@@ -192,7 +258,10 @@ $("join").addEventListener("click", () => {
 });
 $("gateClose").addEventListener("click", () => { $("gate").hidden = true; });
 $("gate").addEventListener("click", (e) => { if (e.target === $("gate")) $("gate").hidden = true; });
-addEventListener("keydown", (e) => { if (e.key === "Escape") $("gate").hidden = true; });
+addEventListener("keydown", (e) => { // Escape closes the window on top: first the code window, then the side pane
+  if (e.key !== "Escape") return;
+  if (!$("gate").hidden) $("gate").hidden = true; else if ($("done").hidden) pane(false);
+});
 
 $("gateForm").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -253,4 +322,5 @@ $("again").addEventListener("click", () => { $("done").hidden = true; });
 document.title = TITLE;
 $("title").textContent = TITLE;
 const back = findPerson(store.get("availability.code") || ""); // been here before on this phone: straight to your days
+pane(false);
 if (back) open(back); else draw();
