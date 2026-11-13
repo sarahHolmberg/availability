@@ -209,3 +209,13 @@ body.editing .day:not(.past) { cursor: pointer; }
 }
 #again { margin-bottom: 10px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* Read progress */
+.readOpen { display: block; margin: 36px auto 0; }
+#readText {
+  font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; width: 100%; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); resize: vertical; text-align: left;
+}
+.card .ok { color: var(--go); font-size: 14px; font-weight: 700; }
+.card .ok:empty { display: none; }
+#read .link { padding: 4px; }

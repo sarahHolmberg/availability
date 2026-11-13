@@ -1,5 +1,8 @@
-// The main page is the road: the steps to the dance meet and where everyone is on it (from config.js).
-// The side pane holds the calendar: who is available, and with a code you set your own days; Send emails them (Web3Forms).
+// The main page is the road: the steps to the dance meet and where everyone is on it.
+// The side pane holds the calendar: who is available, and with your username you set your own days.
+// There is no database. Everything a person sends goes out by EMAIL (Web3Forms), and this browser's local storage
+// stands in for the database: it remembers what YOU sent (so you move along the road at once) and what was pasted
+// in "Read progress" (the JSON line of the emails).
 const $ = (id) => document.getElementById(id);
 const WEB3FORMS_URL = "https://api.web3forms.com/submit";
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -29,11 +32,38 @@ function listDays(days) {
   }
   return out;
 }
-PEOPLE.forEach((p, i) => {
-  p.list = listDays(p.days);
-  p.colour = `var(--p${i % 5})`;
-  p.done = Math.min(STEPS.length, Math.max(Number(p.done) || 0, p.list.length ? 1 : 0)); // days shown = step 1 finished
-});
+const load = (k) => { try { return JSON.parse(store.get(k)); } catch { return null; } };
+const save = (k, v) => store.set(k, JSON.stringify(v));
+const READ = "availability.read";                         // what "Read progress" took in: { username: { name, days, done, food } }
+const mine = (what) => `availability.${what}.${myName.toLowerCase()}`; // my own keys: "sent" (days sent), "days" (days painted), "food"
+
+let myName = null;  // the username typed on this phone, or null = not typed yet
+let me = null;      // that person in folk, or null
+let folk = [];      // everybody on the road: config.js + what was read + you
+
+/** Put everybody together: the people in config.js, then what "Read progress" took in, then you (what you sent from this phone). */
+function gather() {
+  folk = PEOPLE.map((p) => ({ name: p.name, list: listDays(p.days), done: Number(p.done) || 0, food: null }));
+  const find = (name) => folk.find((p) => p.name.toLowerCase() === String(name).toLowerCase());
+  const add = (name) => find(name) || folk[folk.push({ name, list: [], done: 0, food: null }) - 1];
+  for (const r of Object.values(load(READ) || {})) {
+    const p = add(r.name);
+    if (Array.isArray(r.days)) p.list = listDays(r.days);
+    if (r.done != null) p.done = Number(r.done) || 0;
+    if (r.food) p.food = r.food;
+  }
+  me = myName ? add(myName) : null;
+  if (me) {
+    const sent = load(mine("sent"));
+    if (Array.isArray(sent)) me.list = sent;          // the days you sent from this phone
+    me.food = load(mine("food")) || me.food;
+  }
+  folk.forEach((p, i) => {
+    p.colour = `var(--p${i % 5})`;
+    p.done = Math.min(STEPS.length, Math.max(p.done, p.list.length ? 1 : 0)); // days shown = step 1 finished
+  });
+}
+const foodWords = (f) => [(f.places || []).join(", "), f.order, f.soda].filter(Boolean).join(" · ");
 
 /** Days as words: "10-13 Dec, 14-16 Jan" (short), or one line per month for the email. */
 function inWords(days, forEmail) {
@@ -49,56 +79,48 @@ function inWords(days, forEmail) {
   return [...months].map(([name, runs]) => (forEmail ? `${name}: ${text(runs)}` : `${text(runs)} ${name}`)).join(forEmail ? "\n" : " · ");
 }
 
-let me = null;            // the person whose code was typed (one of PEOPLE), or null = just looking
 let picked = new Set();   // my days
 
 // ------------------------------ The road (main page) ------------------------------
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
-/** Where is "now" on the road? With a code: your own stop. Just looking: the stop with the most people (the furthest, if equal). */
-function nowAt() {
-  if (me) return me.done;
-  let best = 0, most = 0;
-  for (let i = 0; i <= STEPS.length; i++) {
-    const n = PEOPLE.filter((p) => p.done === i).length;
-    if (n && n >= most) { most = n; best = i; }
-  }
-  return best;
-}
+/** Where are you on the road? The step you finished last. Before you typed your username: the very first stop. */
+const nowAt = () => (me ? me.done : 0);
 const allStops = () => [{ icon: "🚩", title: "Start", text: "Show the days you are free to set off.",
-  more: "Everybody starts here. Open the 📅 Days tab, type your code and paint the days you are free: that takes you to step 1." }, ...STEPS];
+  more: "Everybody starts here. Open the 📅 Days tab, type your username and paint the days you are free. Press Send: that takes you to step 1." }, ...STEPS];
 const stepName = (i) => (i ? `Step ${i} of ${STEPS.length}` : "Start");
 
 /** The stops of the road. Passed stops get a tick, the stop we are at NOW is the big green one, the rest is still grey. */
 function drawMap() {
   const map = $("map"), now = nowAt(), stops = allStops();
   map.textContent = "";
-  $("sub").textContent = !me ? "The road to the day, and where everyone is on it."
+  $("sub").textContent = !me ? "You are at the start. Open 📅 Days and show the days you are free."
     : me.done >= STEPS.length ? `Hi ${me.name}. You have finished every step.`
     : `Hi ${me.name}. Your next step: ${STEPS[me.done].title}.`;
 
   // The card at the top: where we are now, and a bar with one piece per step
   const card = $("now");
   card.textContent = "";
-  card.append(el("span", "nowLabel", me ? "📍 You are here" : "📍 We are here"), el("b", "", `${stepName(now)}: ${stops[now].title}`));
+  card.append(el("span", "nowLabel", "📍 You are here"), el("b", "", `${stepName(now)}: ${stops[now].title}`));
   const bar = el("span", "nowBar");
   STEPS.forEach((_, i) => bar.append(el("i", i < now ? "full" : "")));
   card.append(bar);
   card.onclick = () => map.children[now].scrollIntoView({ behavior: "smooth", block: "center" });
 
   stops.forEach((s, i) => {
-    const here = PEOPLE.filter((p) => p.done === i);
+    const here = folk.filter((p) => p.done === i);
+    if (!me && i === 0) here.unshift({ name: "You", colour: "var(--go)", you: true }); // not typed a username yet: you stand at the start
     const row = el("li", "stop " + (i % 2 ? "right" : "left") + (i < now ? " passed" : i === now ? " now" : ""));
     const btn = el("button"); btn.type = "button";
     btn.addEventListener("click", () => info(i));
     const pin = el("span", "pin", s.icon);
     const body = el("span", "about");
-    body.append(el("span", "nr", i === now ? (me ? "📍 You are here" : "📍 We are here") : i < now ? `✓ ${stepName(i)}` : stepName(i)),
+    body.append(el("span", "nr", i === now ? "📍 You are here" : i < now ? `✓ ${stepName(i)}` : stepName(i)),
       el("b", "name", s.title), el("span", "what", s.text));
     if (here.length) {
       const who = el("span", "here");
       for (const p of here) {
-        const chip = el("span", "chip" + (p === me ? " me" : ""));
+        const chip = el("span", "chip" + (p === me || p.you ? " me" : ""));
         chip.style.setProperty("--c", p.colour);
         chip.append(el("i"), p === me ? `${p.name} (you)` : p.name);
         who.append(chip);
@@ -120,12 +142,15 @@ function info(i) {
   shownStep = i;
   const s = allStops()[i], now = nowAt(), box = $("infoCard");
   box.textContent = "";
-  const here = PEOPLE.filter((p) => p.done === i);
+  const here = folk.filter((p) => p.done === i);
   box.append(el("div", "bigIcon", s.icon), el("p", "nr", stepName(i)), el("h2", "", s.title),
-    el("p", "state " + (i < now ? "passed" : i === now ? "now" : ""), i < now ? "✓ Done" : i === now ? (me ? "📍 You are here" : "📍 We are here") : "Still to come"),
+    el("p", "state " + (i < now ? "passed" : i === now ? "now" : ""), i < now ? "✓ Done" : i === now ? "📍 You are here" : "Still to come"),
     el("p", "", s.more || s.text));
   if (here.length) box.append(el("p", "soft", `Here now: ${here.map((p) => (p === me ? "you" : p.name)).join(", ")}`));
-  if (s.food) box.append(foodForm(s));
+  if (s.food) {
+    for (const p of folk) if (p !== me && p.food) box.append(el("p", "soft", `${p.name}: ${foodWords(p.food)}`)); // answers that were read
+    box.append(foodForm(s));
+  }
   const close = el("button", "link", "Close"); close.type = "button";
   close.addEventListener("click", closeInfo);
   box.append(close);
@@ -134,18 +159,16 @@ function info(i) {
 function closeInfo() { shownStep = null; $("info").hidden = true; }
 $("info").addEventListener("click", (e) => { if (e.target === $("info")) closeInfo(); });
 
-/** The food step: tick the places, write the usual order and the favourite soda, and Send emails it. Needs your code. */
+/** The food step: tick the places, write the usual order and the favourite soda, and Send emails it. Needs your username. */
 function foodForm(step) {
   const form = el("form", "food");
   if (!me) {
-    const b = el("button", "primary", "Type your code to answer"); b.type = "button";
+    const b = el("button", "primary", "Type your username to answer"); b.type = "button";
     b.addEventListener("click", askCode);
     form.append(b);
     return form;
   }
-  const saveKey = "availability.food." + me.code.toUpperCase();
-  let saved = {};
-  try { saved = JSON.parse(store.get(saveKey)) || {}; } catch {}
+  const saved = load(mine("food")) || {};
   const ticked = new Set(saved.places || []);
   const places = el("div", "places");
   for (const name of step.food) {
@@ -172,14 +195,14 @@ function foodForm(step) {
     msg.className = "error";
     if (!ticked.size && !order.value.trim() && !soda.value.trim()) { msg.textContent = "Tick a place or write something first."; return; }
     const answer = { places: [...ticked], order: order.value.trim(), soda: soda.value.trim() };
-    store.set(saveKey, JSON.stringify(answer));
     send.disabled = true; send.textContent = "Sending…"; msg.textContent = "";
     try {
       await mail(`${TITLE}: food preference of ${me.name}`, {
         "Eats at": answer.places.join(", ") || "(nothing ticked)",
         "Usual order": answer.order || "(not written)",
         "Favourite soda": answer.soda || "(not written)",
-      });
+      }, { food: answer });
+      save(mine("food"), answer); // sent: this phone remembers it
       msg.className = "ok"; msg.textContent = "✓ Sent. Thank you!";
     } catch (err) {
       msg.textContent = `Not sent: ${err.message || "no connection"}. Try again.`;
@@ -219,7 +242,7 @@ $("shade").addEventListener("click", () => pane(false));
 // ------------------------------ The calendar (in the side pane) ------------------------------
 function draw() {
   drawMap();
-  const others = PEOPLE.filter((p) => p !== me);
+  const others = folk.filter((p) => p !== me);
   document.body.classList.toggle("editing", !!me);
   $("hello").textContent = me ? `Hi ${me.name}, paint your days` : "Who is free, and when";
   $("leave").hidden = $("hint").hidden = $("noteBox").hidden = $("barIn").hidden = !me;
@@ -294,7 +317,7 @@ function count() {
   $("countLabel").textContent = picked.size === 1 ? "day" : "days";
   $("clear").hidden = picked.size === 0;
   $("myDays").textContent = picked.size ? inWords(picked) : "No days yet";
-  store.set("availability.days." + me.code.toUpperCase(), JSON.stringify([...picked].sort()));
+  save(mine("days"), [...picked].sort());
 }
 
 /** Switch one of my days on or off (on = true/false). Days that have passed cannot be chosen. */
@@ -339,18 +362,20 @@ $("months").addEventListener("keydown", (e) => {
 $("clear").addEventListener("click", () => { picked.clear(); draw(); });
 
 // ------------------------------ The code ------------------------------
-const findPerson = (text) => {
-  const code = String(text).trim().toUpperCase();
-  return code ? PEOPLE.find((p) => p.code && p.code.trim().toUpperCase() === code) : null;
-};
+/** The username someone typed, tidied; a name that is already on the road keeps its spelling. "" = not a username. */
+function username(text) {
+  const name = String(text || "").trim().replace(/^@/, "");
+  if (!/^[\w.]{2,30}$/.test(name)) return "";
+  return folk.find((p) => p.name.toLowerCase() === name.toLowerCase())?.name || name;
+}
 
-/** Start setting days as this person: the days saved on this phone, or else the days everyone sees for them. */
-function open(p) {
-  me = p;
-  store.set("availability.code", p.code);
-  let saved = null;
-  try { saved = JSON.parse(store.get("availability.days." + p.code.toUpperCase())); } catch {}
-  picked = new Set((Array.isArray(saved) ? saved : p.list).filter((d) => d >= TODAY && inMonths(d)));
+/** Continue as this username: the days painted on this phone, or else the days already known for them. */
+function open(name) {
+  myName = name;
+  store.set("availability.code", name);
+  gather();
+  const painted = load(mine("days"));
+  picked = new Set((Array.isArray(painted) ? painted : me.list).filter((d) => d >= TODAY && inMonths(d)));
   $("note").value = "";
   $("gate").hidden = true; $("done").hidden = true;
   draw();
@@ -362,32 +387,33 @@ $("gateClose").addEventListener("click", () => { $("gate").hidden = true; });
 $("gate").addEventListener("click", (e) => { if (e.target === $("gate")) $("gate").hidden = true; });
 addEventListener("keydown", (e) => { // Escape closes the window on top: first the code window, then the side pane
   if (e.key !== "Escape") return;
-  if (!$("gate").hidden) $("gate").hidden = true; else if (shownStep !== null) closeInfo(); else if ($("done").hidden) pane(false);
+  if (!$("gate").hidden) $("gate").hidden = true; else if (!$("read").hidden) $("read").hidden = true; else if (shownStep !== null) closeInfo(); else if ($("done").hidden) pane(false);
 });
 
 $("gateForm").addEventListener("submit", (e) => {
   e.preventDefault();
-  const p = findPerson($("code").value);
-  if (p) return open(p);
-  $("gateError").textContent = $("code").value.trim() ? "That code is not known. Check it and try again." : "Type your code first.";
+  const name = username($("code").value);
+  if (name) return open(name);
+  $("gateError").textContent = $("code").value.trim() ? "A username is 2 to 30 letters, numbers, dots or _ (no spaces)." : "Type your username first.";
   $("code").classList.remove("shake"); void $("code").offsetWidth; $("code").classList.add("shake");
   $("code").select();
 });
 
-$("leave").addEventListener("click", () => { store.del("availability.code"); me = null; picked = new Set(); draw(); });
+$("leave").addEventListener("click", () => { store.del("availability.code"); myName = null; picked = new Set(); gather(); draw(); });
 
 // ------------------------------ The email ------------------------------
-/** Send one email through Web3Forms: a subject and the lines { label: text }. Throws (with the reason) when it is not sent.
+/** Send one email through Web3Forms: a subject, the lines { label: text } and the facts for the JSON line (what
+ *  "Read progress" takes in). Throws (with the reason) when it is not sent.
  *  Debug prints (browser console, F12): every step of the sending, tagged [MAIL]. The key is shown shortened. */
-async function mail(subject, lines) {
+async function mail(subject, lines, facts) {
   if (!WEB3FORMS_KEY) { console.warn("[MAIL] NOT SENT: the Web3Forms key is missing (config.js)."); throw new Error("sending is not set up yet (the Web3Forms key is missing in config.js)"); }
   const form = new FormData();
   form.append("access_key", WEB3FORMS_KEY);
   form.append("subject", subject);
   form.append("from_name", TITLE);
   form.append("Name", me.name);
-  form.append("Code", me.code);
   for (const [label, text] of Object.entries(lines)) form.append(label, text);
+  form.append("JSON", JSON.stringify({ name: me.name, ...facts }));
   const shown = Object.fromEntries(form);
   shown.access_key = WEB3FORMS_KEY.slice(0, 8) + "…";
   console.log("[MAIL] 1. Sending to", WEB3FORMS_URL, "at", new Date().toLocaleTimeString());
@@ -417,9 +443,12 @@ $("send").addEventListener("click", async () => {
   if (note) lines.Note = note;
   if (n) lines["All days"] = [...picked].sort().join(", ");
   try {
-    await mail(`${TITLE}: ${me.name} (${n} ${n === 1 ? "day" : "days"})`, lines);
+    const days = [...picked].sort();
+    await mail(`${TITLE}: ${me.name} (${n} ${n === 1 ? "day" : "days"})`, lines, { days });
+    save(mine("sent"), days); // sent: this phone remembers it, so you move along the road at once
+    gather(); draw();
     $("doneText").textContent = n
-      ? `Thanks ${me.name}. Your ${n} ${n === 1 ? "day has" : "days have"} been sent. They show for everyone once they are added to the page.`
+      ? `Thanks ${me.name}. Your ${n} ${n === 1 ? "day has" : "days have"} been sent. You are now on step ${me.done}: ${allStops()[me.done].title}.`
       : `Thanks ${me.name}. It has been sent that you have no days.`;
     $("done").hidden = false;
   } catch (err) {
@@ -430,9 +459,57 @@ $("send").addEventListener("click", async () => {
 });
 $("again").addEventListener("click", () => { $("done").hidden = true; });
 
+// ------------------------------ Read progress (paste the JSON lines of the emails) ------------------------------
+/** The JSON things in a text: one thing, a list [..], or several pasted after each other (with anything in between). */
+function things(text) {
+  try { const v = JSON.parse(text); return Array.isArray(v) ? v : [v]; } catch {}
+  const out = [];
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== "{") continue;
+    for (let j = i, deep = 0, inText = false; j < text.length; j++) {
+      const ch = text[j];
+      if (inText) { if (ch === "\\") j++; else if (ch === '"') inText = false; continue; }
+      if (ch === '"') inText = true; else if (ch === "{") deep++; else if (ch === "}" && --deep === 0) {
+        try { out.push(JSON.parse(text.slice(i, j + 1))); i = j; } catch {}
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+$("readOpen").addEventListener("click", () => { $("read").hidden = false; $("readMsg").textContent = ""; $("readText").focus(); });
+$("readClose").addEventListener("click", () => { $("read").hidden = true; });
+$("read").addEventListener("click", (e) => { if (e.target === $("read")) $("read").hidden = true; });
+$("readGo").addEventListener("click", () => {
+  const msg = $("readMsg"), all = load(READ) || {}, names = [];
+  msg.className = "error";
+  for (const t of things($("readText").value)) {
+    const name = t && typeof t.name === "string" ? t.name.trim() : "";
+    if (!name) continue;
+    const r = all[name.toLowerCase()] || (all[name.toLowerCase()] = { name });
+    if (Array.isArray(t.days)) r.days = t.days.map(String);      // the days they sent
+    if (Number.isFinite(Number(t.done)) && t.done !== null && t.done !== "") r.done = Number(t.done); // "done": 3 = three steps finished
+    if (t.food && typeof t.food === "object") r.food = t.food;   // their food answers
+    if (!names.includes(r.name)) names.push(r.name);
+  }
+  console.log("[READ] taken in:", names, all);
+  if (!names.length) { msg.textContent = 'Nothing found. Paste the JSON line of an email, like {"name":"anna","days":["2026-12-10"]}.'; return; }
+  save(READ, all);
+  gather(); draw();
+  $("readText").value = "";
+  msg.className = "ok";
+  msg.textContent = `✓ Read ${names.length === 1 ? "1 person" : names.length + " people"}: ${names.join(", ")}. Close this to see the road.`;
+});
+$("readForget").addEventListener("click", () => {
+  store.del(READ); gather(); draw();
+  $("readMsg").className = "ok"; $("readMsg").textContent = "Everything that was read is forgotten.";
+});
+
 // ------------------------------ Start ------------------------------
 document.title = TITLE;
 $("title").textContent = TITLE;
-const back = findPerson(store.get("availability.code") || ""); // been here before on this phone: straight to your days
 pane(false);
+gather();
+const back = username(store.get("availability.code") || ""); // been here before on this phone: continue as you
 if (back) open(back); else draw();

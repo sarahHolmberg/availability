@@ -21,6 +21,8 @@
     <svg id="road" aria-hidden="true" preserveAspectRatio="none"><path class="todo"/><path class="gone"/></svg>
     <ol id="map" class="map"></ol>
   </div>
+  <!-- For the organiser: paste the JSON lines of the emails -->
+  <button id="readOpen" class="link readOpen" type="button">Read progress</button>
 </main>
 
 <!-- The tab on the right edge: opens and closes the side pane -->
@@ -57,7 +59,7 @@
     <!-- Before the code -->
     <div id="barOut" class="bar">
       <span class="soft">Add your own days</span>
-      <button id="join" class="primary" type="button">I have a code</button>
+      <button id="join" class="primary" type="button">Add my days</button>
     </div>
     <!-- After the code -->
     <div id="barIn" class="bar" hidden>
@@ -73,17 +75,31 @@
   <div id="infoCard" class="card infoCard"></div>
 </div>
 
-<!-- The code -->
+<!-- The username -->
 <div id="gate" class="gate" hidden>
   <form id="gateForm" class="card" autocomplete="off">
-    <h2>Your code</h2>
-    <p>Type your code to add or change your days.</p>
+    <h2>Your username</h2>
+    <p>Type your username, so we know whose days these are.</p>
     <input id="code" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false"
-           placeholder="Your code" aria-label="Your code" enterkeyhint="go">
+           placeholder="Your username" aria-label="Your username" enterkeyhint="go" maxlength="31">
     <p id="gateError" class="error" role="alert"></p>
-    <button class="primary" type="submit">Open</button>
+    <button class="primary" type="submit">Continue</button>
     <button id="gateClose" class="link" type="button">Just looking</button>
   </form>
+</div>
+
+<!-- Read progress -->
+<div id="read" class="gate" hidden>
+  <div class="card">
+    <h2>Read progress</h2>
+    <p>Paste the <b>JSON</b> line of one or more emails. The people land on the road where they belong, in this browser.</p>
+    <textarea id="readText" rows="6" spellcheck="false" aria-label="JSON from the emails"
+              placeholder='{"name":"anna","days":["2026-12-10","2026-12-11"]}'></textarea>
+    <p id="readMsg" class="error" role="status"></p>
+    <button id="readGo" class="primary" type="button">Read</button>
+    <button id="readForget" class="link" type="button">Forget everything that was read</button>
+    <button id="readClose" class="link" type="button">Close</button>
+  </div>
 </div>
 
 <!-- Sent -->

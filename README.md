@@ -9,17 +9,27 @@ A small phone-first page for the dance meet.
   what they usually order and their favourite soda, and emails the answers to you (needs their code).
 - **The 📅 Days tab** on the right edge slides the side pane in (and out again). In it: the months, a coloured dot on
   each day somebody is available, and each person's days in words.
-- **With a code** (button at the bottom of the pane) a person sets their own days: **swipe sideways** across days to
-  paint them, swipe over painted days to remove them, or **tap a weekday** (Mon, Tue, ...) for its whole column.
-  **Send** emails the days to you (through Web3Forms, free, no server). The road then shows where they are themselves.
-- The page has no database. So after an email arrives, **put those days in `config.js`** to show them to everyone,
-  and **change `done`** there when a person finishes a step.
+- **Add my days** (bottom of the pane): a person types their username and sets their own days: **swipe sideways**
+  across days to paint them, swipe over painted days to remove them, or **tap a weekday** (Mon, Tue, ...) for its whole
+  column. **Send** emails the days to you (through Web3Forms, free, no server).
+
+## No database: email + this browser's memory
+
+- Everything a person sends (their days, their food answers) comes to you **by email**.
+- Before they type a username, a person sees **You** at the start of the road. After they send their days, their own
+  browser remembers it (local storage) and shows them on **step 1** straight away, under their username.
+- That memory is only in **their** browser. Other visitors do not see it.
+- **Read progress** (small link at the bottom of the main page): every email has a line **JSON**. Paste one or more of
+  those lines there and the people land on the road where they belong, in **your** browser. You can also write a line
+  yourself to move somebody on: `{"name":"maawan_","done":3}` = three steps finished.
+- To show somebody to **everyone**, add them to `PEOPLE` in `config.js`.
 
 ## Settings: `config.js`
 
 - `WEB3FORMS_KEY`: the key from https://web3forms.com; the emails go to the address the key was made for.
 - `MONTHS_SHOWN`: the months on the page, e.g. `["2026-12", "2027-01"]`.
-- `PEOPLE`: one line per person: `{ name: "Anna", code: "ANNA", done: 2, days: ["2026-12-10 to 2026-12-13", "2027-01-05"] },`.
+- `PEOPLE`: the people everyone sees. One line per person:
+  `{ name: "anna", done: 2, days: ["2026-12-10 to 2026-12-13", "2027-01-05"] },`.
   `done` = how many steps of the road the person has finished (someone with days listed has always finished step 1).
 - `STEPS`: the steps of the road, in order (picture, short name, one sentence, and the longer text behind a tap).
   The file is public, so a code keeps strangers out but is not a secret.
