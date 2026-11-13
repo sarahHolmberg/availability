@@ -169,8 +169,8 @@ body.paneOpen .shade { opacity: 1; pointer-events: auto; }
 .dots { position: absolute; left: 0; right: 0; bottom: 6px; display: flex; gap: 3px; justify-content: center; }
 .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
 .day.on .dots i { box-shadow: 0 0 0 1.5px var(--go-ink); }
-body.editing .grid { touch-action: pan-y; }  /* while you paint: sideways paints, up and down still scrolls the page */
-body.editing .day:not(.past) { cursor: pointer; }
+#months .grid { touch-action: pan-y; }  /* while you paint: sideways paints, up and down still scrolls the page */
+#months .day:not(.past) { cursor: pointer; }
 
 .note { display: grid; gap: 6px; margin-top: 20px; font-size: 14px; color: var(--soft); }
 .note textarea {

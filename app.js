@@ -1,5 +1,6 @@
 // The main page is the road: the steps to the dance meet and where everyone is on it.
-// The side pane holds the calendar: who is available, and with your username you set your own days.
+// The side pane holds the calendar: who is available, and you paint your own days. To SEND, you type your username:
+// it must be one of the names in config.js (the code), and then "You" on the road becomes that username.
 // There is no database. Everything a person sends goes out by EMAIL (Web3Forms), and this browser's local storage
 // stands in for the database: it remembers what YOU sent (so you move along the road at once) and what was pasted
 // in "Read progress" (the JSON line of the emails).
@@ -35,9 +36,9 @@ function listDays(days) {
 const load = (k) => { try { return JSON.parse(store.get(k)); } catch { return null; } };
 const save = (k, v) => store.set(k, JSON.stringify(v));
 const READ = "availability.read";                         // what "Read progress" took in: { username: { name, days, done, food } }
-const mine = (what) => `availability.${what}.${myName.toLowerCase()}`; // my own keys: "sent" (days sent), "days" (days painted), "food"
+const mine = (what) => `availability.${what}.${(myName || "_you").toLowerCase()}`; // my own keys: "sent" (days sent), "days" (days painted), "food"
 
-let myName = null;  // the username typed on this phone, or null = not typed yet
+let myName = null;  // the username typed on this phone (one of config.js), or null = not typed yet: you are "You"
 let me = null;      // that person in folk, or null
 let folk = [];      // everybody on the road: config.js + what was read + you
 
@@ -87,7 +88,7 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 /** Where are you on the road? The step you finished last. Before you typed your username: the very first stop. */
 const nowAt = () => (me ? me.done : 0);
 const allStops = () => [{ icon: "🚩", title: "Start", text: "Show the days you are free to set off.",
-  more: "Everybody starts here. Open the 📅 Days tab, type your username and paint the days you are free. Press Send: that takes you to step 1." }, ...STEPS];
+  more: "Everybody starts here. Open the 📅 Days tab and paint the days you are free. Press Send and type your username: that takes you to step 1." }, ...STEPS];
 const stepName = (i) => (i ? `Step ${i} of ${STEPS.length}` : "Start");
 
 /** The stops of the road. Passed stops get a tick, the stop we are at NOW is the big green one, the rest is still grey. */
@@ -108,7 +109,7 @@ function drawMap() {
   card.onclick = () => map.children[now].scrollIntoView({ behavior: "smooth", block: "center" });
 
   stops.forEach((s, i) => {
-    const here = folk.filter((p) => p.done === i);
+    const here = folk.filter((p) => p.done === i && (i > 0 || p === me)); // a person who has not started only shows to themselves
     if (!me && i === 0) here.unshift({ name: "You", colour: "var(--go)", you: true }); // not typed a username yet: you stand at the start
     const row = el("li", "stop " + (i % 2 ? "right" : "left") + (i < now ? " passed" : i === now ? " now" : ""));
     const btn = el("button"); btn.type = "button";
@@ -142,7 +143,7 @@ function info(i) {
   shownStep = i;
   const s = allStops()[i], now = nowAt(), box = $("infoCard");
   box.textContent = "";
-  const here = folk.filter((p) => p.done === i);
+  const here = folk.filter((p) => p.done === i && (i > 0 || p === me));
   box.append(el("div", "bigIcon", s.icon), el("p", "nr", stepName(i)), el("h2", "", s.title),
     el("p", "state " + (i < now ? "passed" : i === now ? "now" : ""), i < now ? "✓ Done" : i === now ? "📍 You are here" : "Still to come"),
     el("p", "", s.more || s.text));
@@ -164,7 +165,7 @@ function foodForm(step) {
   const form = el("form", "food");
   if (!me) {
     const b = el("button", "primary", "Type your username to answer"); b.type = "button";
-    b.addEventListener("click", askCode);
+    b.addEventListener("click", () => askCode());
     form.append(b);
     return form;
   }
@@ -243,10 +244,8 @@ $("shade").addEventListener("click", () => pane(false));
 function draw() {
   drawMap();
   const others = folk.filter((p) => p !== me);
-  document.body.classList.toggle("editing", !!me);
-  $("hello").textContent = me ? `Hi ${me.name}, paint your days` : "Who is free, and when";
-  $("leave").hidden = $("hint").hidden = $("noteBox").hidden = $("barIn").hidden = !me;
-  $("barOut").hidden = !!me;
+  $("hello").textContent = me ? `Hi ${me.name}, paint your days` : "Paint the days you are free";
+  $("leave").hidden = !me;
 
   // Who is on the calendar
   const legend = $("legend");
@@ -258,7 +257,7 @@ function draw() {
     li.append(i, b, s); legend.append(li);
     return s;
   };
-  if (me) row("var(--go)", "You", "", true).id = "myDays";
+  row("var(--go)", me ? `You (${me.name})` : "You", "", true).id = "myDays";
   for (const p of others) if (p.list.length) row(p.colour, p.name, inWords(p.list));
   if (!legend.children.length) row("var(--line)", "Nobody yet", "Be the first");
 
@@ -276,8 +275,8 @@ function draw() {
     // A weekday name takes its whole column in that month: all on, or (if they are all on already) all off.
     WEEKDAYS.forEach((name, i) => {
       const b = document.createElement("button");
-      b.type = "button"; b.textContent = name; b.disabled = !me;
-      if (me) b.setAttribute("aria-label", `All ${name} days in ${MONTHS[month]}`);
+      b.type = "button"; b.textContent = name;
+      b.setAttribute("aria-label", `All ${name} days in ${MONTHS[month]}`);
       b.addEventListener("click", () => {
         const cells = [...grid.children].filter((c, n) => n % 7 === i && c.dataset.day && c.dataset.day >= TODAY);
         const on = !cells.every((c) => picked.has(c.dataset.day));
@@ -290,7 +289,7 @@ function draw() {
     for (let d = 1; d <= days; d++) {
       const k = key(y, month, d), who = others.filter((p) => p.list.includes(k));
       const cell = document.createElement("div");
-      cell.className = "day" + (k < TODAY ? " past" : "") + (k === TODAY ? " today" : "") + (who.length ? " busy" : "") + (me && picked.has(k) ? " on" : "");
+      cell.className = "day" + (k < TODAY ? " past" : "") + (k === TODAY ? " today" : "") + (who.length ? " busy" : "") + (picked.has(k) ? " on" : "");
       cell.dataset.day = k;
       cell.setAttribute("role", "gridcell");
       cell.append(String(d));
@@ -302,7 +301,7 @@ function draw() {
         label += `: ${who.map((p) => p.name).join(", ")}`;
       }
       cell.setAttribute("aria-label", label);
-      if (me && k >= TODAY) { cell.tabIndex = 0; cell.setAttribute("aria-selected", picked.has(k)); }
+      if (k >= TODAY) { cell.tabIndex = 0; cell.setAttribute("aria-selected", picked.has(k)); }
       grid.append(cell);
     }
     sec.append(h, wd, grid); box.append(sec);
@@ -312,7 +311,6 @@ function draw() {
 
 function count() {
   $("sendError").textContent = "";
-  if (!me) return;
   $("count").textContent = picked.size;
   $("countLabel").textContent = picked.size === 1 ? "day" : "days";
   $("clear").hidden = picked.size === 0;
@@ -323,7 +321,7 @@ function count() {
 /** Switch one of my days on or off (on = true/false). Days that have passed cannot be chosen. */
 function set(cell, on) {
   const k = cell?.dataset?.day;
-  if (!me || !k || k < TODAY || picked.has(k) === on) return;
+  if (!k || k < TODAY || picked.has(k) === on) return;
   on ? picked.add(k) : picked.delete(k);
   cell.classList.toggle("on", on);
   cell.setAttribute("aria-selected", on);
@@ -340,7 +338,7 @@ let moved = false;    // did the touch reach a second day?
 const dayAt = (e) => document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".day");
 $("months").addEventListener("pointerdown", (e) => {
   const cell = dayAt(e);
-  if (!me || !cell || cell.classList.contains("past")) return;
+  if (!cell || cell.classList.contains("past")) return;
   painting = !picked.has(cell.dataset.day);
   startCell = cell; moved = false;
   set(cell, painting);
@@ -362,27 +360,30 @@ $("months").addEventListener("keydown", (e) => {
 $("clear").addEventListener("click", () => { picked.clear(); draw(); });
 
 // ------------------------------ The code ------------------------------
-/** The username someone typed, tidied; a name that is already on the road keeps its spelling. "" = not a username. */
+/** The username someone typed, if it is one of the names in config.js (capitals and a leading @ do not matter). "" = not on the list. */
 function username(text) {
-  const name = String(text || "").trim().replace(/^@/, "");
-  if (!/^[\w.]{2,30}$/.test(name)) return "";
-  return folk.find((p) => p.name.toLowerCase() === name.toLowerCase())?.name || name;
+  const name = String(text || "").trim().replace(/^@/, "").toLowerCase();
+  return (name && PEOPLE.find((p) => p.name.toLowerCase() === name)?.name) || "";
 }
 
-/** Continue as this username: the days painted on this phone, or else the days already known for them. */
+/** Continue as this username. Days painted just now (as "You") stay; else the days painted before, or the days known for them. */
 function open(name) {
+  const justPainted = !myName && picked.size ? [...picked] : null;
   myName = name;
   store.set("availability.code", name);
+  store.del("availability.days._you");
   gather();
-  const painted = load(mine("days"));
+  const painted = justPainted || load(mine("days"));
   picked = new Set((Array.isArray(painted) ? painted : me.list).filter((d) => d >= TODAY && inMonths(d)));
-  $("note").value = "";
   $("gate").hidden = true; $("done").hidden = true;
   draw();
 }
 
-function askCode() { $("gate").hidden = false; $("gateError").textContent = ""; $("code").value = ""; $("code").focus(); }
-$("join").addEventListener("click", askCode);
+let afterCode = null; // what to do once the username is accepted (send the days), or null
+function askCode(then) {
+  afterCode = then || null;
+  $("gate").hidden = false; $("gateError").textContent = ""; $("code").value = ""; $("code").focus();
+}
 $("gateClose").addEventListener("click", () => { $("gate").hidden = true; });
 $("gate").addEventListener("click", (e) => { if (e.target === $("gate")) $("gate").hidden = true; });
 addEventListener("keydown", (e) => { // Escape closes the window on top: first the code window, then the side pane
@@ -393,13 +394,14 @@ addEventListener("keydown", (e) => { // Escape closes the window on top: first t
 $("gateForm").addEventListener("submit", (e) => {
   e.preventDefault();
   const name = username($("code").value);
-  if (name) return open(name);
-  $("gateError").textContent = $("code").value.trim() ? "A username is 2 to 30 letters, numbers, dots or _ (no spaces)." : "Type your username first.";
+  if (name) { const then = afterCode; afterCode = null; open(name); if (then) then(); return; }
+  console.warn("[CODE] REFUSED: not on the list:", $("code").value.trim());
+  $("gateError").textContent = $("code").value.trim() ? "That username is not on the list. Check the spelling, or ask to be added." : "Type your username first.";
   $("code").classList.remove("shake"); void $("code").offsetWidth; $("code").classList.add("shake");
   $("code").select();
 });
 
-$("leave").addEventListener("click", () => { store.del("availability.code"); myName = null; picked = new Set(); gather(); draw(); });
+$("leave").addEventListener("click", () => { store.del("availability.code"); myName = null; picked = new Set(); gather(); draw(); $("note").value = ""; });
 
 // ------------------------------ The email ------------------------------
 /** Send one email through Web3Forms: a subject, the lines { label: text } and the facts for the JSON line (what
@@ -434,8 +436,9 @@ async function mail(subject, lines, facts) {
   }
 }
 
-$("send").addEventListener("click", async () => {
-  if (!me) return;
+$("send").addEventListener("click", sendDays);
+async function sendDays() {
+  if (!me) return askCode(sendDays); // first your username (checked against the list), then it sends
   const btn = $("send"), n = picked.size;
   btn.disabled = true; btn.textContent = "Sending…"; $("sendError").textContent = "";
   const note = $("note").value.trim();
@@ -456,7 +459,7 @@ $("send").addEventListener("click", async () => {
   } finally {
     btn.textContent = "Send"; btn.disabled = false;
   }
-});
+}
 $("again").addEventListener("click", () => { $("done").hidden = true; });
 
 // ------------------------------ Read progress (paste the JSON lines of the emails) ------------------------------
@@ -512,4 +515,5 @@ $("title").textContent = TITLE;
 pane(false);
 gather();
 const back = username(store.get("availability.code") || ""); // been here before on this phone: continue as you
-if (back) open(back); else draw();
+if (back) open(back);
+else { picked = new Set((load(mine("days")) || []).filter((d) => d >= TODAY && inMonths(d))); draw(); }

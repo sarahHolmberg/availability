@@ -7,15 +7,18 @@ const WEB3FORMS_KEY = "2fd09af2-d997-42d9-ae86-189446376e29";
 // The months on the page: "year-month".
 const MONTHS_SHOWN = ["2026-12", "2027-01"];
 
-// The people everyone sees when they open the page: where each one is on the road, and their days.
-// Anybody else can type their own username on the page; their days and answers come to you by email. Each email has a
-// line "JSON": paste it in "Read progress" (bottom of the page) to see that person on the road in YOUR browser.
-// To show them to EVERYONE, add them here.
-//   name: the username. Someone who types this username on the page continues as this person.
+// The people. Their usernames are the CODE: only someone who types one of these usernames can send.
+// (This file is public, so that keeps strangers out but is not a secret.)
+// Before a person has typed their username they are "You" on the road; after it, "You" becomes their username.
+// A person with no days and done: 0 has not started: they are not shown on the road to others.
+// Each email has a line "JSON": paste it in "Read progress" (bottom of the page) to see that person move in YOUR
+// browser. To show it to EVERYONE, change the person here.
+//   name: the username (capitals do not matter when typing it).
 //   days: the days everyone sees for this person. One day "2026-12-10", or a row of days "2026-12-10 to 2026-12-13".
 //   done: how many steps of the road (STEPS below) this person has finished: 0 = none, 1 = the first, 2 = the first two...
 //         Somebody with days listed here has always finished step 1, so you only write done from step 2 on.
 const PEOPLE = [
+  { name: "amelicgr",         done: 0, days: [] },
   { name: "bisaje_navarrete", done: 1, days: ["2026-12-11 to 2026-12-13", "2027-01-15 to 2027-01-17"] },
   { name: "maawan_",          done: 1, days: ["2026-12-10 to 2026-12-13", "2027-01-14 to 2027-01-16"] },
 ];

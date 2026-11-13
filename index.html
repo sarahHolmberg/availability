@@ -44,25 +44,19 @@
     <!-- Who is on the calendar: a colour, a name and their days in words -->
     <ul id="legend" class="legend"></ul>
 
-    <p id="hint" class="hint" hidden><b>Swipe sideways</b> across days to paint yours. Swipe over painted days to remove them. <b>Tap</b> a weekday (Mon, Tue…) for its whole column.</p>
+    <p id="hint" class="hint"><b>Swipe sideways</b> across days to paint yours. Swipe over painted days to remove them. <b>Tap</b> a weekday (Mon, Tue…) for its whole column.</p>
 
     <!-- The months are drawn here -->
     <div id="months"></div>
 
-    <label id="noteBox" class="note" hidden>
+    <label id="noteBox" class="note">
       <span>Anything to add? (optional)</span>
       <textarea id="note" rows="2" maxlength="500" placeholder="e.g. only after 4 pm on the 12th"></textarea>
     </label>
   </div>
 
   <footer>
-    <!-- Before the code -->
-    <div id="barOut" class="bar">
-      <span class="soft">Add your own days</span>
-      <button id="join" class="primary" type="button">Add my days</button>
-    </div>
-    <!-- After the code -->
-    <div id="barIn" class="bar" hidden>
+    <div id="barIn" class="bar">
       <div class="count"><b id="count">0</b> <span id="countLabel" class="soft">days</span><button id="clear" class="link" type="button">Clear</button></div>
       <button id="send" class="primary" type="button">Send</button>
     </div>
@@ -79,12 +73,12 @@
 <div id="gate" class="gate" hidden>
   <form id="gateForm" class="card" autocomplete="off">
     <h2>Your username</h2>
-    <p>Type your username, so we know whose days these are.</p>
+    <p>Type your username. Only usernames on the list can send.</p>
     <input id="code" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false"
            placeholder="Your username" aria-label="Your username" enterkeyhint="go" maxlength="31">
     <p id="gateError" class="error" role="alert"></p>
     <button class="primary" type="submit">Continue</button>
-    <button id="gateClose" class="link" type="button">Just looking</button>
+    <button id="gateClose" class="link" type="button">Not now</button>
   </form>
 </div>
 
