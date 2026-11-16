@@ -1,14 +1,16 @@
-# Dance meet: the road and the available days
+# :fouR: the road to the dance meet, and the available days
 
-A small phone-first page for the dance meet.
+A small phone-first page for the dance meet, in the :fouR look (black, white, heavy letters; `logo.png` and `favicon.png`).
 
 - **The main page is the road**: the steps to the day (days shown, the day explained, video call, food preference, 25% paid, tickets
   bought, videographer booked, everybody agreed) and, at each stop, the people who are there now. The stop we are at
   is the big green one (also named in the card at the top); passed stops have a tick.
 - **Tap a step** for more about it. The **food step** asks where a person eats (Max, McDonald's, Burger King, kebab),
   what they usually order and their favourite soda, and emails the answers to you (needs their username).
-- **The 📅 Days tab** on the right edge slides the side pane in (and out again). In it: the months, a coloured dot on
-  each day somebody is available, and each person's days in words.
+- **The 📅 Days tab** on the right edge slides the side pane in (and out again). In it: only the weeks in
+  `WEEKS_SHOWN`, and each person's days in words.
+- **The calendar steers people to the same days**: a day is brighter green the more of the others are free on it.
+  Your own days are white; a white day with a green ring is a day you share with others.
 - **Anyone can paint days** in the pane: **swipe sideways** across days to paint them, swipe over painted days to
   remove them, or **tap a weekday** (Mon, Tue, ...) for its whole column.
 - **Send asks for a username**, and that username is the **code**: it must be one of the names in `PEOPLE`
@@ -29,7 +31,7 @@ A small phone-first page for the dance meet.
 ## Settings: `config.js`
 
 - `WEB3FORMS_KEY`: the key from https://web3forms.com; the emails go to the address the key was made for.
-- `MONTHS_SHOWN`: the months on the page, e.g. `["2026-12", "2027-01"]`.
+- `WEEKS_SHOWN`: the days on the calendar, e.g. `["2026-12-01 to 2026-12-13", "2027-01-18 to 2027-01-31"]`. Days outside it are not shown and cannot be chosen.
 - `PEOPLE`: the people, and at the same time the list of usernames that may send. One line per person:
   `{ name: "anna", done: 2, days: ["2026-12-10 to 2026-12-13", "2027-01-05"] },`.
   `done` = how many steps of the road the person has finished (someone with days listed has always finished step 1).

@@ -4,8 +4,8 @@
 // availability, and the key arrives in that inbox). Every Send goes to that address.
 const WEB3FORMS_KEY = "2fd09af2-d997-42d9-ae86-189446376e29";
 
-// The months on the page: "year-month".
-const MONTHS_SHOWN = ["2026-12", "2027-01"];
+// The weeks on the calendar: only these days are shown and can be chosen. "first day to last day".
+const WEEKS_SHOWN = ["2026-12-01 to 2026-12-13", "2027-01-18 to 2027-01-31"];
 
 // The people. Their usernames are the CODE: only someone who types one of these usernames can send.
 // (This file is public, so that keeps strangers out but is not a secret.)
@@ -20,7 +20,7 @@ const MONTHS_SHOWN = ["2026-12", "2027-01"];
 const PEOPLE = [
   { name: "amelicgr",         done: 0, days: [] },
   { name: "bisaje_navarrete", done: 1, days: ["2026-12-11 to 2026-12-13", "2027-01-15 to 2027-01-17"] },
-  { name: "maawan_",          done: 1, days: ["2026-12-10 to 2026-12-13", "2027-01-14 to 2027-01-16"] },
+  { name: "maawan_",          done: 1, days: ["2026-12-10 to 2026-12-13", "2027-01-21 to 2027-01-23"] },
 ];
 
 // The road on the main page: the steps, in order.
@@ -47,5 +47,5 @@ const STEPS = [
     more: "The last step: everybody has said yes to the plan and to the dates. After this, we meet and dance." },
 ];
 
-// The title at the top of the page and in the email subject.
-const TITLE = "Dance meet";
+// The name: the title of the browser tab, the top of the page and the email subject.
+const TITLE = ":fouR";

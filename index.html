@@ -3,8 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f6f1e7">
-<title>Dance meet</title>
+<meta name="theme-color" content="#000000">
+<title>:fouR</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,7 +17,7 @@
 <!-- The main page: the road to the dance meet -->
 <main>
   <header>
-    <h1 id="title">Dance meet</h1>
+    <h1 id="title">:fouR</h1>
     <p id="sub" class="soft"></p>
     <!-- Where we are now: tap it to jump to that step -->
     <button id="now" class="nowCard" type="button"></button>
@@ -46,7 +51,10 @@
 
     <p id="hint" class="hint"><b>Swipe sideways</b> across days to paint yours. Swipe over painted days to remove them. <b>Tap</b> a weekday (Mon, Tue…) for its whole column.</p>
 
-    <!-- The months are drawn here -->
+    <!-- The key, without words: the brighter the day, the more people are free on it -->
+    <div class="key" role="img" aria-label="Brighter days: more people are free"><span>👤</span><i></i><span>👥</span></div>
+
+    <!-- The weeks are drawn here -->
     <div id="months"></div>
 
     <label id="noteBox" class="note">

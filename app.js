@@ -15,7 +15,8 @@ const pad = (n) => String(n).padStart(2, "0");
 const key = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const now = new Date();
 const TODAY = key(now.getFullYear(), now.getMonth(), now.getDate());
-const inMonths = (k) => MONTHS_SHOWN.includes(k.slice(0, 7));
+let SHOWN = new Set(); // the days on the calendar (WEEKS_SHOWN in config.js), filled in below
+const inMonths = (k) => SHOWN.has(k);
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
@@ -33,6 +34,7 @@ function listDays(days) {
   }
   return out;
 }
+SHOWN = new Set(listDays(WEEKS_SHOWN));
 const load = (k) => { try { return JSON.parse(store.get(k)); } catch { return null; } };
 const save = (k, v) => store.set(k, JSON.stringify(v));
 const READ = "availability.read";                         // what "Read progress" took in: { username: { name, days, done, food } }
@@ -60,6 +62,7 @@ function gather() {
     me.food = load(mine("food")) || me.food;
   }
   folk.forEach((p, i) => {
+    p.list = p.list.filter(inMonths); // only the days on the calendar
     p.colour = `var(--p${i % 5})`;
     p.done = Math.min(STEPS.length, Math.max(p.done, p.list.length ? 1 : 0)); // days shown = step 1 finished
   });
@@ -102,7 +105,7 @@ function drawMap() {
   // The card at the top: where we are now, and a bar with one piece per step
   const card = $("now");
   card.textContent = "";
-  card.append(el("span", "nowLabel", "📍 You are here"), el("b", "", `${stepName(now)}: ${stops[now].title}`));
+  card.append(el("span", "nowLabel", "📍 You are here"), el("b", "", now ? `${stepName(now)}: ${stops[now].title}` : "The start"));
   const bar = el("span", "nowBar");
   STEPS.forEach((_, i) => bar.append(el("i", i < now ? "full" : "")));
   card.append(bar);
@@ -261,12 +264,14 @@ function draw() {
   for (const p of others) if (p.list.length) row(p.colour, p.name, inWords(p.list));
   if (!legend.children.length) row("var(--line)", "Nobody yet", "Be the first");
 
-  // The months
+  // The weeks. A day gets brighter the more of the others are free on it (heat 1 to 3): that is where to put yours.
   const box = $("months");
   box.textContent = "";
-  for (const ym of MONTHS_SHOWN) {
+  const freeOn = (k) => others.filter((p) => p.list.includes(k));
+  const most = Math.max(1, ...[...SHOWN].map((k) => freeOn(k).length));
+  const monthsShown = [...new Set([...SHOWN].sort().map((k) => k.slice(0, 7)))];
+  for (const ym of monthsShown) {
     const [y, m] = ym.split("-").map(Number), month = m - 1;
-    const first = new Date(y, month, 1), days = new Date(y, month + 1, 0).getDate();
     const sec = document.createElement("section"); sec.className = "month";
     const h = document.createElement("h3"); h.textContent = `${MONTHS[month]} ${y}`;
     const wd = document.createElement("div"); wd.className = "weekdays";
@@ -285,24 +290,23 @@ function draw() {
       wd.append(b);
     });
 
-    for (let i = (first.getDay() + 6) % 7; i > 0; i--) grid.append(document.createElement("span")); // the week starts on Monday
-    for (let d = 1; d <= days; d++) {
-      const k = key(y, month, d), who = others.filter((p) => p.list.includes(k));
-      const cell = document.createElement("div");
-      cell.className = "day" + (k < TODAY ? " past" : "") + (k === TODAY ? " today" : "") + (who.length ? " busy" : "") + (picked.has(k) ? " on" : "");
-      cell.dataset.day = k;
-      cell.setAttribute("role", "gridcell");
-      cell.append(String(d));
-      let label = `${d} ${MONTHS[month]}`;
-      if (who.length) {
-        const dots = document.createElement("div"); dots.className = "dots";
-        for (const p of who) { const dot = document.createElement("i"); dot.style.setProperty("--c", p.colour); dots.append(dot); }
-        cell.append(dots);
-        label += `: ${who.map((p) => p.name).join(", ")}`;
+    // Whole weeks (Monday to Sunday), and only the weeks that have a shown day in this month
+    const last = new Date(y, month + 1, 0).getDate();
+    for (let d = 1 - (new Date(y, month, 1).getDay() + 6) % 7; d <= last; d += 7) {
+      const week = [0, 1, 2, 3, 4, 5, 6].map((n) => d + n).map((n) => (n >= 1 && n <= last && SHOWN.has(key(y, month, n)) ? n : 0));
+      if (!week.some(Boolean)) continue;
+      for (const n of week) {
+        if (!n) { grid.append(document.createElement("span")); continue; }
+        const k = key(y, month, n), who = freeOn(k), heat = Math.ceil((who.length / most) * 3);
+        const cell = document.createElement("div");
+        cell.className = "day" + (k < TODAY ? " past" : "") + (k === TODAY ? " today" : "") + (heat ? " h" + heat : "") + (picked.has(k) ? " on" : "");
+        cell.dataset.day = k;
+        cell.setAttribute("role", "gridcell");
+        cell.append(String(n));
+        cell.setAttribute("aria-label", `${n} ${MONTHS[month]}` + (who.length ? `: ${who.map((p) => p.name).join(", ")}` : ""));
+        if (k >= TODAY) { cell.tabIndex = 0; cell.setAttribute("aria-selected", picked.has(k)); }
+        grid.append(cell);
       }
-      cell.setAttribute("aria-label", label);
-      if (k >= TODAY) { cell.tabIndex = 0; cell.setAttribute("aria-selected", picked.has(k)); }
-      grid.append(cell);
     }
     sec.append(h, wd, grid); box.append(sec);
   }
