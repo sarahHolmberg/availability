@@ -1,9 +1,10 @@
 // The main page is the road: the steps to the dance meet and where everyone is on it.
 // The side pane holds the calendar: who is available, and you paint your own days. To SEND, you type your username:
-// it must be one of the names in config.js (the code), and then "You" on the road becomes that username.
-// There is no database. Everything a person sends goes out by EMAIL (Web3Forms), and this browser's local storage
-// stands in for the database: it remembers what YOU sent (so you move along the road at once) and what was pasted
-// in "Read progress" (the JSON line of the emails).
+// it must be one of the names in data.json (the code), and then "You" on the road becomes that username.
+// There is no database. The people and their days are in the FILE data.json in the repository: the page reads it
+// every time it loads. Everything a person sends goes out by EMAIL (Web3Forms); the organiser then puts it in
+// data.json (the secret window helps: hold a Sunday for 5 seconds). Until then, the sender's own browser remembers
+// what they sent (local storage), so they move along the road at once.
 const $ = (id) => document.getElementById(id);
 const WEB3FORMS_URL = "https://api.web3forms.com/submit";
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -15,8 +16,8 @@ const pad = (n) => String(n).padStart(2, "0");
 const key = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const now = new Date();
 const TODAY = key(now.getFullYear(), now.getMonth(), now.getDate());
-let SHOWN = new Set(); // the days on the calendar (WEEKS_SHOWN in config.js), filled in below
-const inMonths = (k) => SHOWN.has(k);
+const inMonths = (k) => MONTHS_SHOWN.includes(k.slice(0, 7));
+let PEOPLE = []; // the people in the file data.json (read when the page loads): [{ name, done, days, food }]
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
@@ -34,19 +35,18 @@ function listDays(days) {
   }
   return out;
 }
-SHOWN = new Set(listDays(WEEKS_SHOWN));
 const load = (k) => { try { return JSON.parse(store.get(k)); } catch { return null; } };
 const save = (k, v) => store.set(k, JSON.stringify(v));
 const READ = "availability.read";                         // what "Read progress" took in: { username: { name, days, done, food } }
 const mine = (what) => `availability.${what}.${(myName || "_you").toLowerCase()}`; // my own keys: "sent" (days sent), "days" (days painted), "food"
 
-let myName = null;  // the username typed on this phone (one of config.js), or null = not typed yet: you are "You"
+let myName = null;  // the username typed on this phone (one of data.json), or null = not typed yet: you are "You"
 let me = null;      // that person in folk, or null
 let folk = [];      // everybody on the road: config.js + what was read + you
 
-/** Put everybody together: the people in config.js, then what "Read progress" took in, then you (what you sent from this phone). */
+/** Put everybody together: the people in data.json, then what was pasted in the secret window, then you (what you sent from this phone). */
 function gather() {
-  folk = PEOPLE.map((p) => ({ name: p.name, list: listDays(p.days), done: Number(p.done) || 0, food: null }));
+  folk = PEOPLE.map((p) => ({ name: p.name, list: listDays(p.days), done: Number(p.done) || 0, food: p.food || null }));
   const find = (name) => folk.find((p) => p.name.toLowerCase() === String(name).toLowerCase());
   const add = (name) => find(name) || folk[folk.push({ name, list: [], done: 0, food: null }) - 1];
   for (const r of Object.values(load(READ) || {})) {
@@ -264,14 +264,12 @@ function draw() {
   for (const p of others) if (p.list.length) row(p.colour, p.name, inWords(p.list));
   if (!legend.children.length) row("var(--line)", "Nobody yet", "Be the first");
 
-  // The weeks. A day gets brighter the more of the others are free on it (heat 1 to 3): that is where to put yours.
+  // The months. Under a day: one dot per person who is free, in that person's colour
   const box = $("months");
   box.textContent = "";
-  const freeOn = (k) => others.filter((p) => p.list.includes(k));
-  const most = Math.max(1, ...[...SHOWN].map((k) => freeOn(k).length));
-  const monthsShown = [...new Set([...SHOWN].sort().map((k) => k.slice(0, 7)))];
-  for (const ym of monthsShown) {
+  for (const ym of MONTHS_SHOWN) {
     const [y, m] = ym.split("-").map(Number), month = m - 1;
+    const first = new Date(y, month, 1), days = new Date(y, month + 1, 0).getDate();
     const sec = document.createElement("section"); sec.className = "month";
     const h = document.createElement("h3"); h.textContent = `${MONTHS[month]} ${y}`;
     const wd = document.createElement("div"); wd.className = "weekdays";
@@ -290,23 +288,25 @@ function draw() {
       wd.append(b);
     });
 
-    // Whole weeks (Monday to Sunday), and only the weeks that have a shown day in this month
-    const last = new Date(y, month + 1, 0).getDate();
-    for (let d = 1 - (new Date(y, month, 1).getDay() + 6) % 7; d <= last; d += 7) {
-      const week = [0, 1, 2, 3, 4, 5, 6].map((n) => d + n).map((n) => (n >= 1 && n <= last && SHOWN.has(key(y, month, n)) ? n : 0));
-      if (!week.some(Boolean)) continue;
-      for (const n of week) {
-        if (!n) { grid.append(document.createElement("span")); continue; }
-        const k = key(y, month, n), who = freeOn(k), heat = Math.ceil((who.length / most) * 3);
-        const cell = document.createElement("div");
-        cell.className = "day" + (k < TODAY ? " past" : "") + (k === TODAY ? " today" : "") + (heat ? " h" + heat : "") + (picked.has(k) ? " on" : "");
-        cell.dataset.day = k;
-        cell.setAttribute("role", "gridcell");
-        cell.append(String(n));
-        cell.setAttribute("aria-label", `${n} ${MONTHS[month]}` + (who.length ? `: ${who.map((p) => p.name).join(", ")}` : ""));
-        if (k >= TODAY) { cell.tabIndex = 0; cell.setAttribute("aria-selected", picked.has(k)); }
-        grid.append(cell);
+    for (let i = (first.getDay() + 6) % 7; i > 0; i--) grid.append(document.createElement("span")); // the week starts on Monday
+    for (let d = 1; d <= days; d++) {
+      const k = key(y, month, d), who = others.filter((p) => p.list.includes(k));
+      const cell = document.createElement("div");
+      cell.className = "day" + (k < TODAY ? " past" : "") + (k === TODAY ? " today" : "") + (who.length ? " busy" : "") + (picked.has(k) ? " on" : "");
+      cell.dataset.day = k;
+      if (new Date(y, month, d).getDay() === 0) cell.dataset.sunday = "1";
+      cell.setAttribute("role", "gridcell");
+      cell.append(String(d));
+      let label = `${d} ${MONTHS[month]}`;
+      if (who.length) {
+        const dots = document.createElement("div"); dots.className = "dots";
+        for (const p of who) { const dot = document.createElement("i"); dot.style.setProperty("--c", p.colour); dots.append(dot); }
+        cell.append(dots);
+        label += `: ${who.map((p) => p.name).join(", ")}`;
       }
+      cell.setAttribute("aria-label", label);
+      if (k >= TODAY) { cell.tabIndex = 0; cell.setAttribute("aria-selected", picked.has(k)); }
+      grid.append(cell);
     }
     sec.append(h, wd, grid); box.append(sec);
   }
@@ -339,6 +339,8 @@ function set(cell, on) {
 let painting = null;  // null = not painting, true = switching on, false = switching off
 let startCell = null; // the day the touch started on
 let moved = false;    // did the touch reach a second day?
+let holding = 0;      // the timer of the secret long press
+const SECRET_HOLD = 5000; // CHANGE HERE: how long (ms) a Sunday must be held
 const dayAt = (e) => document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".day");
 $("months").addEventListener("pointerdown", (e) => {
   const cell = dayAt(e);
@@ -346,17 +348,26 @@ $("months").addEventListener("pointerdown", (e) => {
   painting = !picked.has(cell.dataset.day);
   startCell = cell; moved = false;
   set(cell, painting);
+  // The secret: keep a Sunday pressed for 5 seconds (without moving) and the organiser's window opens
+  clearTimeout(holding);
+  if (cell.dataset.sunday) holding = setTimeout(() => {
+    if (painting === null || moved) return;
+    set(startCell, !painting); // the press was not meant as a tap: the day goes back to what it was
+    painting = null;
+    secret();
+  }, SECRET_HOLD);
 });
+$("months").addEventListener("contextmenu", (e) => e.preventDefault()); // a long press must not open the phone's own menu
 addEventListener("pointermove", (e) => {
   if (painting === null) return;
   const cell = dayAt(e);
-  if (cell && cell !== startCell) moved = true;
+  if (cell && cell !== startCell) { moved = true; clearTimeout(holding); }
   set(cell, painting);
 });
-addEventListener("pointerup", () => { painting = null; });
+addEventListener("pointerup", () => { painting = null; clearTimeout(holding); });
 addEventListener("pointercancel", () => {
   if (painting !== null && !moved) set(startCell, !painting); // it was a scroll, not a tap
-  painting = null;
+  painting = null; clearTimeout(holding);
 });
 $("months").addEventListener("keydown", (e) => {
   if ((e.key === " " || e.key === "Enter") && e.target.dataset.day) { e.preventDefault(); set(e.target, !picked.has(e.target.dataset.day)); }
@@ -364,21 +375,21 @@ $("months").addEventListener("keydown", (e) => {
 $("clear").addEventListener("click", () => { picked.clear(); draw(); });
 
 // ------------------------------ The code ------------------------------
-/** The username someone typed, if it is one of the names in config.js (capitals and a leading @ do not matter). "" = not on the list. */
+/** The username someone typed, if it is one of the names in data.json (capitals and a leading @ do not matter). "" = not on the list. */
 function username(text) {
   const name = String(text || "").trim().replace(/^@/, "").toLowerCase();
   return (name && PEOPLE.find((p) => p.name.toLowerCase() === name)?.name) || "";
 }
 
-/** Continue as this username. Days painted just now (as "You") stay; else the days painted before, or the days known for them. */
+/** Continue as this username: the days known for them (painted before on this phone, or else from data.json), plus the days painted just now as "You". */
 function open(name) {
   const justPainted = !myName && picked.size ? [...picked] : null;
   myName = name;
   store.set("availability.code", name);
   store.del("availability.days._you");
   gather();
-  const painted = justPainted || load(mine("days"));
-  picked = new Set((Array.isArray(painted) ? painted : me.list).filter((d) => d >= TODAY && inMonths(d)));
+  const before = load(mine("days")), known = Array.isArray(before) ? before : me.list; // your days from earlier
+  picked = new Set([...known, ...(justPainted || [])].filter((d) => d >= TODAY && inMonths(d))); // what you just painted is added to them
   $("gate").hidden = true; $("done").hidden = true;
   draw();
 }
@@ -485,7 +496,27 @@ function things(text) {
   return out;
 }
 
-$("readOpen").addEventListener("click", () => { $("read").hidden = false; $("readMsg").textContent = ""; $("readText").focus(); });
+/** What data.json should hold now: the people in the file, plus everything pasted in the secret window. One person per line. */
+function fileNow() {
+  const all = PEOPLE.map((p) => ({ name: p.name, done: Number(p.done) || 0, days: listDays(p.days), ...(p.food ? { food: p.food } : {}) }));
+  for (const r of Object.values(load(READ) || {})) {
+    let p = all.find((x) => x.name.toLowerCase() === r.name.toLowerCase());
+    if (!p) all.push(p = { name: r.name, done: 0, days: [] });
+    if (Array.isArray(r.days)) p.days = listDays(r.days);
+    if (r.done != null) p.done = Number(r.done) || 0;
+    if (r.food) p.food = r.food;
+  }
+  for (const p of all) { p.days.sort(); p.done = Math.max(p.done, p.days.length ? 1 : 0); }
+  return `{\n  "people": [\n${all.map((p) => "    " + JSON.stringify(p)).join(",\n")}\n  ]\n}\n`;
+}
+
+/** The secret window (hold a Sunday for 5 seconds): paste the JSON lines of the emails, get the new data.json to put on GitHub. */
+function secret() {
+  console.log("[SECRET] the organiser's window opens");
+  $("read").hidden = false; $("readMsg").textContent = "";
+  $("fileText").value = fileNow();
+  $("fileLink").href = DATA_EDIT_URL;
+}
 $("readClose").addEventListener("click", () => { $("read").hidden = true; });
 $("read").addEventListener("click", (e) => { if (e.target === $("read")) $("read").hidden = true; });
 $("readGo").addEventListener("click", () => {
@@ -505,19 +536,40 @@ $("readGo").addEventListener("click", () => {
   save(READ, all);
   gather(); draw();
   $("readText").value = "";
+  $("fileText").value = fileNow();
   msg.className = "ok";
-  msg.textContent = `✓ Read ${names.length === 1 ? "1 person" : names.length + " people"}: ${names.join(", ")}. Close this to see the road.`;
+  msg.textContent = `✓ Added ${names.join(", ")}. Now copy the file below into data.json on GitHub, so everyone sees it.`;
+});
+$("fileCopy").addEventListener("click", async () => {
+  const box = $("fileText");
+  try { await navigator.clipboard.writeText(box.value); } catch { box.select(); document.execCommand("copy"); }
+  $("fileCopy").textContent = "Copied ✓";
+  setTimeout(() => { $("fileCopy").textContent = "Copy the file"; }, 2000);
 });
 $("readForget").addEventListener("click", () => {
   store.del(READ); gather(); draw();
-  $("readMsg").className = "ok"; $("readMsg").textContent = "Everything that was read is forgotten.";
+  $("fileText").value = fileNow();
+  $("readMsg").className = "ok"; $("readMsg").textContent = "Back to what is in data.json.";
 });
 
 // ------------------------------ Start ------------------------------
 document.title = TITLE;
 $("title").textContent = TITLE;
 pane(false);
-gather();
-const back = username(store.get("availability.code") || ""); // been here before on this phone: continue as you
-if (back) open(back);
-else { picked = new Set((load(mine("days")) || []).filter((d) => d >= TODAY && inMonths(d))); draw(); }
+(async () => {
+  // The people: read the file data.json, fresh every time the page loads
+  try {
+    const res = await fetch("data.json?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error(`data.json answered ${res.status}`);
+    const data = await res.json();
+    PEOPLE = (Array.isArray(data) ? data : data.people || []).filter((p) => p && typeof p.name === "string");
+    console.log("[DATA] data.json read:", PEOPLE.length, "people", PEOPLE);
+  } catch (err) {
+    console.error("[DATA] data.json could not be read:", err.message || err);
+    $("dataError").textContent = "The people could not be loaded (data.json). Reload the page; if it stays, the file has a mistake.";
+  }
+  gather();
+  const back = username(store.get("availability.code") || ""); // been here before on this phone: continue as you
+  if (back) open(back);
+  else { picked = new Set((load(mine("days")) || []).filter((d) => d >= TODAY && inMonths(d))); draw(); }
+})();

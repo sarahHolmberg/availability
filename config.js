@@ -4,24 +4,14 @@
 // availability, and the key arrives in that inbox). Every Send goes to that address.
 const WEB3FORMS_KEY = "2fd09af2-d997-42d9-ae86-189446376e29";
 
-// The weeks on the calendar: only these days are shown and can be chosen. "first day to last day".
-const WEEKS_SHOWN = ["2026-12-01 to 2026-12-13", "2027-01-18 to 2027-01-31"];
+// The months on the calendar: "year-month".
+const MONTHS_SHOWN = ["2026-12", "2027-01"];
 
-// The people. Their usernames are the CODE: only someone who types one of these usernames can send.
-// (This file is public, so that keeps strangers out but is not a secret.)
-// Before a person has typed their username they are "You" on the road; after it, "You" becomes their username.
-// A person with no days and done: 0 has not started: they are not shown on the road to others.
-// Each email has a line "JSON": paste it in "Read progress" (bottom of the page) to see that person move in YOUR
-// browser. To show it to EVERYONE, change the person here.
-//   name: the username (capitals do not matter when typing it).
-//   days: the days everyone sees for this person. One day "2026-12-10", or a row of days "2026-12-10 to 2026-12-13".
-//   done: how many steps of the road (STEPS below) this person has finished: 0 = none, 1 = the first, 2 = the first two...
-//         Somebody with days listed here has always finished step 1, so you only write done from step 2 on.
-const PEOPLE = [
-  { name: "amelicgr",         done: 0, days: [] },
-  { name: "bisaje_navarrete", done: 1, days: ["2026-12-11 to 2026-12-13", "2027-01-15 to 2027-01-17"] },
-  { name: "maawan_",          done: 1, days: ["2026-12-10 to 2026-12-13", "2027-01-21 to 2027-01-23"] },
-];
+// THE PEOPLE ARE IN THE FILE data.json (next to this file). The page reads it every time it loads: who is on the
+// road, their days, and how many steps they have finished. Their usernames are also the CODE: only someone who
+// types a username from data.json can send.
+// Where you change that file on GitHub (the secret window on the page links to it):
+const DATA_EDIT_URL = "https://github.com/sarahHolmberg/availability/edit/main/data.json";
 
 // The road on the main page: the steps, in order.
 //   icon = the picture in the circle, title = the short name, text = one sentence about it,

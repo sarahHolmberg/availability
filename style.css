@@ -1,8 +1,7 @@
-/* The look: the :fouR picture. Black, white, heavy round letters. One colour besides: --heat, for the days others are free. */
+/* The look: the :fouR picture. Black, white, heavy round letters. */
 :root {
   --bg: #000; --card: #111; --ink: #fff; --soft: #9b9b9b; --line: #2b2b2b;
   --go: #fff; --go-ink: #000; --go-soft: #1d1d1d; --bad: #ff7a70;
-  --heat: #c8ff2e;                                                                 /* days other people are free */
   --p0: #ff9a3d; --p1: #a88bff; --p2: #4fc3ff; --p3: #ff7ac0; --p4: #ffe24a;      /* the people's colours */
   color-scheme: dark;
 }
@@ -158,20 +157,16 @@ body.paneOpen .shade { opacity: 1; pointer-events: auto; }
 .day {
   position: relative; aspect-ratio: 1; border-radius: 14px; background: var(--card); border: 1px solid var(--line);
   display: grid; place-items: center; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums;
-  user-select: none; -webkit-user-select: none;
+  padding-bottom: 9px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   transition: background .12s, border-color .12s;
 }
 .day.today { border: 2px solid var(--ink); }
-/* Heat: the more of the others are free on a day, the brighter it is */
-.day.h1 { background: color-mix(in srgb, var(--heat) 22%, var(--card)); border-color: color-mix(in srgb, var(--heat) 40%, var(--card)); }
-.day.h2 { background: color-mix(in srgb, var(--heat) 55%, var(--card)); border-color: color-mix(in srgb, var(--heat) 70%, var(--card)); }
-.day.h3 { background: var(--heat); border-color: var(--heat); color: #000; box-shadow: 0 0 18px color-mix(in srgb, var(--heat) 55%, transparent); }
-/* Your own day: white. On a day others are free too, it keeps their colour as a ring: a match */
-.day.on { background: var(--go); border-color: var(--go); color: var(--go-ink); box-shadow: none; }
-.day.on.h1, .day.on.h2, .day.on.h3 { box-shadow: 0 0 0 3px var(--bg), 0 0 0 6px var(--heat); z-index: 1; }
-.day.past { opacity: .3; background: none; border-style: dashed; box-shadow: none; }
-.key { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; font-size: 15px; }
-.key i { flex: 1; height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--card), var(--heat)); border: 1px solid var(--line); }
+.day.busy { border-color: var(--soft); }                       /* somebody is available that day */
+.day.on { background: var(--go); border-color: var(--go); color: var(--go-ink); }  /* your own day */
+.day.past { opacity: .3; background: none; border-style: dashed; }
+.dots { position: absolute; left: 0; right: 0; bottom: 5px; display: flex; gap: 3px; justify-content: center; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+.day.on .dots i { box-shadow: 0 0 0 1.5px var(--go-ink); }
 #months .grid { touch-action: pan-y; }  /* while you paint: sideways paints, up and down still scrolls the page */
 #months .day:not(.past) { cursor: pointer; }
 
@@ -213,12 +208,14 @@ body.paneOpen .shade { opacity: 1; pointer-events: auto; }
 #again { margin-bottom: 10px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
-/* Read progress */
-.readOpen { display: block; margin: 36px auto 0; }
-#readText {
-  font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; width: 100%; padding: 10px 12px; border-radius: 12px;
+/* The secret window for the organiser */
+.code {
+  font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; width: 100%; padding: 10px 12px; border-radius: 12px;
   border: 1px solid var(--line); background: var(--bg); color: var(--ink); resize: vertical; text-align: left;
+  white-space: pre; overflow: auto;
 }
-.card .ok { color: var(--go); font-size: 14px; font-weight: 700; }
+.card .ok { color: var(--ink); font-size: 14px; font-weight: 700; }
 .card .ok:empty { display: none; }
 #read .link { padding: 4px; }
+#read p { text-align: left; color: var(--ink); font-size: 14px; }
+main header .error { margin-top: 8px; }

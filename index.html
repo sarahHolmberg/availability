@@ -19,6 +19,7 @@
   <header>
     <h1 id="title">:fouR</h1>
     <p id="sub" class="soft"></p>
+    <p id="dataError" class="error" role="alert"></p>
     <!-- Where we are now: tap it to jump to that step -->
     <button id="now" class="nowCard" type="button"></button>
   </header>
@@ -26,8 +27,6 @@
     <svg id="road" aria-hidden="true" preserveAspectRatio="none"><path class="todo"/><path class="gone"/></svg>
     <ol id="map" class="map"></ol>
   </div>
-  <!-- For the organiser: paste the JSON lines of the emails -->
-  <button id="readOpen" class="link readOpen" type="button">Read progress</button>
 </main>
 
 <!-- The tab on the right edge: opens and closes the side pane -->
@@ -51,10 +50,7 @@
 
     <p id="hint" class="hint"><b>Swipe sideways</b> across days to paint yours. Swipe over painted days to remove them. <b>Tap</b> a weekday (Mon, Tue…) for its whole column.</p>
 
-    <!-- The key, without words: the brighter the day, the more people are free on it -->
-    <div class="key" role="img" aria-label="Brighter days: more people are free"><span>👤</span><i></i><span>👥</span></div>
-
-    <!-- The weeks are drawn here -->
+    <!-- The months are drawn here -->
     <div id="months"></div>
 
     <label id="noteBox" class="note">
@@ -90,16 +86,20 @@
   </form>
 </div>
 
-<!-- Read progress -->
+<!-- The secret window for the organiser: hold a Sunday for 5 seconds -->
 <div id="read" class="gate" hidden>
-  <div class="card">
-    <h2>Read progress</h2>
-    <p>Paste the <b>JSON</b> line of one or more emails. The people land on the road where they belong, in this browser.</p>
-    <textarea id="readText" rows="6" spellcheck="false" aria-label="JSON from the emails"
+  <div class="card infoCard">
+    <h2>Update the file</h2>
+    <p><b>1.</b> Paste the <b>JSON</b> line of one or more emails and press Add.</p>
+    <textarea id="readText" class="code" rows="4" spellcheck="false" aria-label="JSON from the emails"
               placeholder='{"name":"anna","days":["2026-12-10","2026-12-11"]}'></textarea>
     <p id="readMsg" class="error" role="status"></p>
-    <button id="readGo" class="primary" type="button">Read</button>
-    <button id="readForget" class="link" type="button">Forget everything that was read</button>
+    <button id="readGo" class="primary" type="button">Add</button>
+    <p><b>2.</b> Copy the file and put it in <b>data.json</b> on GitHub (replace everything, then Commit). After a minute everyone sees it.</p>
+    <textarea id="fileText" class="code" rows="7" readonly spellcheck="false" aria-label="The new data.json"></textarea>
+    <button id="fileCopy" class="primary" type="button">Copy the file</button>
+    <a id="fileLink" class="link" target="_blank" rel="noopener">Open data.json on GitHub</a>
+    <button id="readForget" class="link" type="button">Undo what I added here</button>
     <button id="readClose" class="link" type="button">Close</button>
   </div>
 </div>
