@@ -86,20 +86,20 @@
   </form>
 </div>
 
-<!-- The secret window for the organiser: hold a Sunday for 5 seconds -->
+<!-- The organiser's window: hold a Sunday for 5 seconds -->
 <div id="read" class="gate" hidden>
   <div class="card infoCard">
-    <h2>Update the file</h2>
-    <p><b>1.</b> Paste the <b>JSON</b> line of one or more emails and press Add.</p>
-    <textarea id="readText" class="code" rows="4" spellcheck="false" aria-label="JSON from the emails"
-              placeholder='{"name":"anna","days":["2026-12-10","2026-12-11"]}'></textarea>
+    <h2>Organiser</h2>
+    <form id="adminForm" class="adminLine" autocomplete="off">
+      <input id="adminKey" type="password" placeholder="Organiser key" aria-label="Organiser key">
+      <button class="primary" type="submit">Open</button>
+    </form>
     <p id="readMsg" class="error" role="status"></p>
-    <button id="readGo" class="primary" type="button">Add</button>
-    <p><b>2.</b> Copy the file and put it in <b>data.json</b> on GitHub (replace everything, then Commit). After a minute everyone sees it.</p>
-    <textarea id="fileText" class="code" rows="7" readonly spellcheck="false" aria-label="The new data.json"></textarea>
-    <button id="fileCopy" class="primary" type="button">Copy the file</button>
-    <a id="fileLink" class="link" target="_blank" rel="noopener">Open data.json on GitHub</a>
-    <button id="readForget" class="link" type="button">Undo what I added here</button>
+    <div id="adminList"></div>
+    <form id="adminAdd" class="adminLine" autocomplete="off" hidden>
+      <input id="adminName" placeholder="New username" aria-label="New username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="31">
+      <button class="primary" type="submit">Add</button>
+    </form>
     <button id="readClose" class="link" type="button">Close</button>
   </div>
 </div>
@@ -115,6 +115,7 @@
 </div>
 
 <script src="config.js"></script>
+<script src="redirect.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

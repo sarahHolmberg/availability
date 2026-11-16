@@ -208,14 +208,31 @@ body.paneOpen .shade { opacity: 1; pointer-events: auto; }
 #again { margin-bottom: 10px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
-/* The secret window for the organiser */
-.code {
-  font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; width: 100%; padding: 10px 12px; border-radius: 12px;
-  border: 1px solid var(--line); background: var(--bg); color: var(--ink); resize: vertical; text-align: left;
-  white-space: pre; overflow: auto;
-}
+/* The organiser's window */
 .card .ok { color: var(--ink); font-size: 14px; font-weight: 700; }
 .card .ok:empty { display: none; }
-#read .link { padding: 4px; }
-#read p { text-align: left; color: var(--ink); font-size: 14px; }
+.adminLine { display: flex; gap: 8px; }
+.adminLine input {
+  flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+#adminList { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; text-align: left; }
+.infoCard { overflow-x: hidden; grid-template-columns: minmax(0, 1fr); }
+.adminRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+.adminRow .who { font-size: 16px; overflow-wrap: anywhere; }
+.adminRow p { grid-column: 1 / -1; font-size: 13px; color: var(--ink); overflow-wrap: anywhere; }
+.adminRow p.soft { color: var(--soft); }
+.adminRow .link { grid-column: 1 / -1; justify-self: start; padding: 4px 0; font-size: 13px; }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper b { min-width: 1.2em; text-align: center; font-size: 18px; font-variant-numeric: tabular-nums; }
+.stepper button { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); font-size: 20px; font-weight: 700; }
+.stepper button:disabled { opacity: .3; cursor: default; }
 main header .error { margin-top: 8px; }
+
+/* The old address: "Redirecting you to ..." */
+.away { position: fixed; inset: 0; z-index: 99; background: var(--bg); display: grid; place-content: center; justify-items: center; gap: 10px; padding: 24px; text-align: center; }
+.away h1 { font-size: 64px; font-weight: 800; letter-spacing: -.04em; line-height: 1; margin-bottom: 18px; }
+.away p { color: var(--soft); }
+.away a:not(.primary) { color: var(--ink); font-size: 22px; font-weight: 700; overflow-wrap: anywhere; }
+.awayTime b { display: grid; place-items: center; width: 84px; height: 84px; margin: 14px auto; border-radius: 50%; border: 4px solid var(--ink); color: var(--ink); font-size: 36px; font-variant-numeric: tabular-nums; }
+.away .primary { display: inline-grid; place-items: center; text-decoration: none; }

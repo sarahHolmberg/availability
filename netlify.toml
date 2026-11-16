@@ -1,0 +1,15 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# The page talks to /api (shorter than /.netlify/functions/road)
+[[redirects]]
+  from = "/api"
+  to = "/.netlify/functions/road"
+  status = 200
+
+# The page and its files: always the newest version
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-cache"

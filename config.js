@@ -1,17 +1,19 @@
 // ============================== SETTINGS: CHANGE HERE ==============================
 
 // The Web3Forms access key (free at https://web3forms.com: type the email address that should receive the
-// availability, and the key arrives in that inbox). Every Send goes to that address.
+// copies, and the key arrives in that inbox). Every Send is saved in the database AND emailed to that address.
 const WEB3FORMS_KEY = "2fd09af2-d997-42d9-ae86-189446376e29";
 
 // The months on the calendar: "year-month".
 const MONTHS_SHOWN = ["2026-12", "2027-01"];
 
-// THE PEOPLE ARE IN THE FILE data.json (next to this file). The page reads it every time it loads: who is on the
-// road, their days, and how many steps they have finished. Their usernames are also the CODE: only someone who
-// types a username from data.json can send.
-// Where you change that file on GitHub (the secret window on the page links to it):
-const DATA_EDIT_URL = "https://github.com/sarahHolmberg/availability/edit/main/data.json";
+// THE PEOPLE ARE IN THE DATABASE (Netlify): who is on the road, their days, their step, their food answers.
+// Their usernames are also the CODE: only a username that is in the database can send.
+// You change them in the organiser's window on the page: open 📅 Days and hold any Sunday for 5 seconds.
+
+// The address of the website. Someone who opens the old GitHub address is sent here.
+const HOME_URL = "https://colon-four.netlify.app/";
+const REDIRECT_SECONDS = 5; // how long the old address shows "Redirecting you to..." first
 
 // The road on the main page: the steps, in order.
 //   icon = the picture in the circle, title = the short name, text = one sentence about it,

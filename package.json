@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "dependencies": {
+    "@netlify/database": "^2.0.1"
+  },
+  "scripts": {
+    "preview": "node tools/preview.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15"
+  }
+}

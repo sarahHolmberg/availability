@@ -1,10 +1,9 @@
 // The main page is the road: the steps to the dance meet and where everyone is on it.
 // The side pane holds the calendar: who is available, and you paint your own days. To SEND, you type your username:
-// it must be one of the names in data.json (the code), and then "You" on the road becomes that username.
-// There is no database. The people and their days are in the FILE data.json in the repository: the page reads it
-// every time it loads. Everything a person sends goes out by EMAIL (Web3Forms); the organiser then puts it in
-// data.json (the secret window helps: hold a Sunday for 5 seconds). Until then, the sender's own browser remembers
-// what they sent (local storage), so they move along the road at once.
+// it must be one of the names in the database (the code), and then "You" on the road becomes that username.
+// The people, their days, their step and their food answers are in the DATABASE (Netlify): the page reads them from
+// /api every time it loads, and saves there when somebody sends (netlify/functions/road.mjs). Every send also goes
+// out by EMAIL (Web3Forms), as a copy for the organiser. The organiser's window: hold a Sunday for 5 seconds.
 const $ = (id) => document.getElementById(id);
 const WEB3FORMS_URL = "https://api.web3forms.com/submit";
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -17,7 +16,22 @@ const key = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const now = new Date();
 const TODAY = key(now.getFullYear(), now.getMonth(), now.getDate());
 const inMonths = (k) => MONTHS_SHOWN.includes(k.slice(0, 7));
-let PEOPLE = []; // the people in the file data.json (read when the page loads): [{ name, done, days, food }]
+let PEOPLE = []; // the people from the database (read when the page loads): [{ name, done, days, food }]
+const API = "/api"; // the function netlify/functions/road.mjs
+
+/** Ask the database: no body = read the people; a body = { action, ... }. Throws (with the reason and .status) when refused. */
+async function api(body) {
+  const res = await fetch(API, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : { cache: "no-store" });
+  const data = await res.json().catch(() => ({}));
+  console.log(`[DB] ${body ? body.action : "read"} -> ${res.status}`, body && body.key ? "(organiser)" : data);
+  if (!res.ok) throw Object.assign(new Error(data.error || `The server answered ${res.status}.`), { status: res.status });
+  return data;
+}
+/** Put a person from the database in PEOPLE (new, or in place of what was known). */
+function keep(person) {
+  const i = PEOPLE.findIndex((p) => p.name.toLowerCase() === person.name.toLowerCase());
+  if (i < 0) PEOPLE.push(person); else PEOPLE[i] = person;
+}
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
@@ -37,30 +51,16 @@ function listDays(days) {
 }
 const load = (k) => { try { return JSON.parse(store.get(k)); } catch { return null; } };
 const save = (k, v) => store.set(k, JSON.stringify(v));
-const READ = "availability.read";                         // what "Read progress" took in: { username: { name, days, done, food } }
-const mine = (what) => `availability.${what}.${(myName || "_you").toLowerCase()}`; // my own keys: "sent" (days sent), "days" (days painted), "food"
+const mine = (what) => `availability.${what}.${(myName || "_you").toLowerCase()}`; // this phone's own notes: "days" = the days painted but maybe not sent yet
 
-let myName = null;  // the username typed on this phone (one of data.json), or null = not typed yet: you are "You"
+let myName = null;  // the username typed on this phone (checked by the database), or null = not typed yet: you are "You"
 let me = null;      // that person in folk, or null
-let folk = [];      // everybody on the road: config.js + what was read + you
+let folk = [];      // everybody on the road, from the database
 
-/** Put everybody together: the people in data.json, then what was pasted in the secret window, then you (what you sent from this phone). */
+/** Put everybody together from PEOPLE (the database), and find you among them. */
 function gather() {
   folk = PEOPLE.map((p) => ({ name: p.name, list: listDays(p.days), done: Number(p.done) || 0, food: p.food || null }));
-  const find = (name) => folk.find((p) => p.name.toLowerCase() === String(name).toLowerCase());
-  const add = (name) => find(name) || folk[folk.push({ name, list: [], done: 0, food: null }) - 1];
-  for (const r of Object.values(load(READ) || {})) {
-    const p = add(r.name);
-    if (Array.isArray(r.days)) p.list = listDays(r.days);
-    if (r.done != null) p.done = Number(r.done) || 0;
-    if (r.food) p.food = r.food;
-  }
-  me = myName ? add(myName) : null;
-  if (me) {
-    const sent = load(mine("sent"));
-    if (Array.isArray(sent)) me.list = sent;          // the days you sent from this phone
-    me.food = load(mine("food")) || me.food;
-  }
+  me = (myName && folk.find((p) => p.name.toLowerCase() === myName.toLowerCase())) || null;
   folk.forEach((p, i) => {
     p.list = p.list.filter(inMonths); // only the days on the calendar
     p.colour = `var(--p${i % 5})`;
@@ -163,7 +163,7 @@ function info(i) {
 function closeInfo() { shownStep = null; $("info").hidden = true; }
 $("info").addEventListener("click", (e) => { if (e.target === $("info")) closeInfo(); });
 
-/** The food step: tick the places, write the usual order and the favourite soda, and Send emails it. Needs your username. */
+/** The food step: tick the places, write the usual order and the favourite soda, and Send saves it. Needs your username. */
 function foodForm(step) {
   const form = el("form", "food");
   if (!me) {
@@ -172,7 +172,7 @@ function foodForm(step) {
     form.append(b);
     return form;
   }
-  const saved = load(mine("food")) || {};
+  const saved = me.food || {};
   const ticked = new Set(saved.places || []);
   const places = el("div", "places");
   for (const name of step.food) {
@@ -201,15 +201,16 @@ function foodForm(step) {
     const answer = { places: [...ticked], order: order.value.trim(), soda: soda.value.trim() };
     send.disabled = true; send.textContent = "Sending…"; msg.textContent = "";
     try {
-      await mail(`${TITLE}: food preference of ${me.name}`, {
+      keep((await api({ action: "food", name: me.name, food: answer })).person); // saved in the database
+      mail(`${TITLE}: food preference of ${me.name}`, {                          // and a copy by email
         "Eats at": answer.places.join(", ") || "(nothing ticked)",
         "Usual order": answer.order || "(not written)",
         "Favourite soda": answer.soda || "(not written)",
-      }, { food: answer });
-      save(mine("food"), answer); // sent: this phone remembers it
-      msg.className = "ok"; msg.textContent = "✓ Sent. Thank you!";
+      }, { food: answer }).catch(() => {});
+      gather();
+      msg.className = "ok"; msg.textContent = "✓ Saved. Thank you!";
     } catch (err) {
-      msg.textContent = `Not sent: ${err.message || "no connection"}. Try again.`;
+      msg.textContent = `Not saved: ${err.message || "no connection"}. Try again.`;
     } finally {
       send.disabled = false; send.textContent = "Send my food preference";
     }
@@ -375,17 +376,12 @@ $("months").addEventListener("keydown", (e) => {
 $("clear").addEventListener("click", () => { picked.clear(); draw(); });
 
 // ------------------------------ The code ------------------------------
-/** The username someone typed, if it is one of the names in data.json (capitals and a leading @ do not matter). "" = not on the list. */
-function username(text) {
-  const name = String(text || "").trim().replace(/^@/, "").toLowerCase();
-  return (name && PEOPLE.find((p) => p.name.toLowerCase() === name)?.name) || "";
-}
-
-/** Continue as this username: the days known for them (painted before on this phone, or else from data.json), plus the days painted just now as "You". */
+/** Continue as this username (the database said yes): the days known for them (painted before on this phone, or else
+ *  from the database), plus the days painted just now as "You". */
 function open(name) {
   const justPainted = !myName && picked.size ? [...picked] : null;
-  myName = name;
-  store.set("availability.code", name);
+  myName = (PEOPLE.find((p) => p.name.toLowerCase() === String(name).trim().replace(/^@/, "").toLowerCase()) || { name }).name;
+  store.set("availability.code", myName);
   store.del("availability.days._you");
   gather();
   const before = load(mine("days")), known = Array.isArray(before) ? before : me.list; // your days from earlier
@@ -406,14 +402,28 @@ addEventListener("keydown", (e) => { // Escape closes the window on top: first t
   if (!$("gate").hidden) $("gate").hidden = true; else if (!$("read").hidden) $("read").hidden = true; else if (shownStep !== null) closeInfo(); else if ($("done").hidden) pane(false);
 });
 
-$("gateForm").addEventListener("submit", (e) => {
+$("gateForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const name = username($("code").value);
-  if (name) { const then = afterCode; afterCode = null; open(name); if (then) then(); return; }
-  console.warn("[CODE] REFUSED: not on the list:", $("code").value.trim());
-  $("gateError").textContent = $("code").value.trim() ? "That username is not on the list. Check the spelling, or ask to be added." : "Type your username first.";
-  $("code").classList.remove("shake"); void $("code").offsetWidth; $("code").classList.add("shake");
-  $("code").select();
+  const typed = $("code").value.trim(), btn = $("gateForm").querySelector(".primary");
+  const wrong = (text) => {
+    $("gateError").textContent = text;
+    $("code").classList.remove("shake"); void $("code").offsetWidth; $("code").classList.add("shake");
+    $("code").select();
+  };
+  if (!typed) return wrong("Type your username first.");
+  btn.disabled = true; $("gateError").textContent = "";
+  try {
+    const { person } = await api({ action: "check", name: typed }); // the database knows who is on the list
+    keep(person);
+    const then = afterCode; afterCode = null;
+    open(person.name);
+    if (then) then();
+  } catch (err) {
+    console.warn("[CODE] REFUSED:", typed, err.message);
+    wrong(err.status === 403 ? "That username is not on the list. Check the spelling, or ask to be added." : `Could not check: ${err.message || "no connection"}. Try again.`);
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 $("leave").addEventListener("click", () => { store.del("availability.code"); myName = null; picked = new Set(); gather(); draw(); $("note").value = ""; });
@@ -453,123 +463,113 @@ async function mail(subject, lines, facts) {
 
 $("send").addEventListener("click", sendDays);
 async function sendDays() {
-  if (!me) return askCode(sendDays); // first your username (checked against the list), then it sends
+  if (!me) return askCode(sendDays); // first your username (the database checks it), then it saves
   const btn = $("send"), n = picked.size;
-  btn.disabled = true; btn.textContent = "Sending…"; $("sendError").textContent = "";
+  btn.disabled = true; btn.textContent = "Saving…"; $("sendError").textContent = "";
   const note = $("note").value.trim();
   const lines = { Available: n ? inWords(picked, true) : "No days (everything removed)" };
   if (note) lines.Note = note;
   if (n) lines["All days"] = [...picked].sort().join(", ");
   try {
     const days = [...picked].sort();
-    await mail(`${TITLE}: ${me.name} (${n} ${n === 1 ? "day" : "days"})`, lines, { days });
-    save(mine("sent"), days); // sent: this phone remembers it, so you move along the road at once
+    keep((await api({ action: "days", name: me.name, days, note })).person); // saved in the database: everyone sees it
+    mail(`${TITLE}: ${me.name} (${n} ${n === 1 ? "day" : "days"})`, lines, { days }).catch(() => {}); // and a copy by email
     gather(); draw();
     $("doneText").textContent = n
-      ? `Thanks ${me.name}. Your ${n} ${n === 1 ? "day has" : "days have"} been sent. You are now on step ${me.done}: ${allStops()[me.done].title}.`
-      : `Thanks ${me.name}. It has been sent that you have no days.`;
+      ? `Thanks ${me.name}. Your ${n} ${n === 1 ? "day is" : "days are"} saved. You are now on step ${me.done}: ${allStops()[me.done].title}.`
+      : `Thanks ${me.name}. It is saved that you have no days.`;
     $("done").hidden = false;
   } catch (err) {
-    $("sendError").textContent = `Not sent: ${err.message || "no connection"}. Your days are kept; try again.`;
+    $("sendError").textContent = `Not saved: ${err.message || "no connection"}. Your days are kept; try again.`;
   } finally {
     btn.textContent = "Send"; btn.disabled = false;
   }
 }
 $("again").addEventListener("click", () => { $("done").hidden = true; });
 
-// ------------------------------ Read progress (paste the JSON lines of the emails) ------------------------------
-/** The JSON things in a text: one thing, a list [..], or several pasted after each other (with anything in between). */
-function things(text) {
-  try { const v = JSON.parse(text); return Array.isArray(v) ? v : [v]; } catch {}
-  const out = [];
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] !== "{") continue;
-    for (let j = i, deep = 0, inText = false; j < text.length; j++) {
-      const ch = text[j];
-      if (inText) { if (ch === "\\") j++; else if (ch === '"') inText = false; continue; }
-      if (ch === '"') inText = true; else if (ch === "{") deep++; else if (ch === "}" && --deep === 0) {
-        try { out.push(JSON.parse(text.slice(i, j + 1))); i = j; } catch {}
-        break;
-      }
-    }
-  }
-  return out;
-}
+// ------------------------------ The organiser's window (hold a Sunday for 5 seconds) ------------------------------
+let adminKey = "";
+try { adminKey = sessionStorage.getItem("availability.key") || ""; } catch {}
 
-/** What data.json should hold now: the people in the file, plus everything pasted in the secret window. One person per line. */
-function fileNow() {
-  const all = PEOPLE.map((p) => ({ name: p.name, done: Number(p.done) || 0, days: listDays(p.days), ...(p.food ? { food: p.food } : {}) }));
-  for (const r of Object.values(load(READ) || {})) {
-    let p = all.find((x) => x.name.toLowerCase() === r.name.toLowerCase());
-    if (!p) all.push(p = { name: r.name, done: 0, days: [] });
-    if (Array.isArray(r.days)) p.days = listDays(r.days);
-    if (r.done != null) p.done = Number(r.done) || 0;
-    if (r.food) p.food = r.food;
-  }
-  for (const p of all) { p.days.sort(); p.done = Math.max(p.done, p.days.length ? 1 : 0); }
-  return `{\n  "people": [\n${all.map((p) => "    " + JSON.stringify(p)).join(",\n")}\n  ]\n}\n`;
-}
-
-/** The secret window (hold a Sunday for 5 seconds): paste the JSON lines of the emails, get the new data.json to put on GitHub. */
 function secret() {
   console.log("[SECRET] the organiser's window opens");
   $("read").hidden = false; $("readMsg").textContent = "";
-  $("fileText").value = fileNow();
-  $("fileLink").href = DATA_EDIT_URL;
+  if (adminKey) admin({ action: "admin-list" }); else { $("adminList").textContent = ""; $("adminAdd").hidden = true; $("adminForm").hidden = false; $("adminKey").focus(); }
 }
+
+/** One organiser action on the database; then the list is drawn again and the road follows. */
+async function admin(body) {
+  const msg = $("readMsg");
+  msg.className = "error"; msg.textContent = "";
+  try {
+    const { people } = await api({ ...body, key: adminKey });
+    try { sessionStorage.setItem("availability.key", adminKey); } catch {}
+    $("adminForm").hidden = true; $("adminAdd").hidden = false;
+    drawAdmin(people);
+    PEOPLE = (await api()).people;            // the road: read fresh
+    if (myName) { const self = people.find((p) => p.name.toLowerCase() === myName.toLowerCase()); if (self) keep(self); }
+    gather(); draw();
+  } catch (err) {
+    msg.textContent = err.message || "No connection.";
+    if (err.status === 403 || err.status === 503) { adminKey = ""; $("adminForm").hidden = false; $("adminAdd").hidden = true; $("adminList").textContent = ""; }
+  }
+}
+
+/** Everybody in the database: their step (− and + move them along the road), their days, food answers and note. */
+function drawAdmin(people) {
+  const list = $("adminList"), stops = allStops();
+  list.textContent = "";
+  if (!people.length) list.append(el("p", "soft", "Nobody yet. Add a username below."));
+  for (const p of people) {
+    const row = el("div", "adminRow"), step = el("div", "stepper");
+    const move = (by) => admin({ action: "admin-save", name: p.name, done: p.done + by });
+    const minus = el("button", "", "−"), plus = el("button", "", "+"), del = el("button", "link", "Remove");
+    minus.type = plus.type = del.type = "button";
+    minus.disabled = p.done <= (p.days.length ? 1 : 0); plus.disabled = p.done >= STEPS.length;
+    minus.setAttribute("aria-label", `${p.name}: one step back`); plus.setAttribute("aria-label", `${p.name}: one step forward`);
+    minus.addEventListener("click", () => move(-1)); plus.addEventListener("click", () => move(1));
+    del.addEventListener("click", () => { if (confirm(`Remove ${p.name}? Their username stops working and their days are deleted.`)) admin({ action: "admin-remove", name: p.name }); });
+    step.append(minus, el("b", "", String(p.done)), plus);
+    row.append(el("b", "who", p.name), step,
+      el("p", "soft", p.done ? `${stepName(p.done)}: ${(stops[p.done] || stops[stops.length - 1]).title}` : "Not started"),
+      el("p", "", p.days.length ? `📅 ${inWords(p.days)}` : "📅 no days yet"));
+    if (p.food) row.append(el("p", "", `🍔 ${foodWords(p.food)}`));
+    if (p.note) row.append(el("p", "", `✏️ ${p.note}`));
+    row.append(del);
+    list.append(row);
+  }
+}
+$("adminForm").addEventListener("submit", (e) => { e.preventDefault(); adminKey = $("adminKey").value; $("adminKey").value = ""; admin({ action: "admin-list" }); });
+$("adminAdd").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = $("adminName").value.trim();
+  if (!name) return;
+  $("adminName").value = "";
+  admin({ action: "admin-save", name, done: 0 });
+});
 $("readClose").addEventListener("click", () => { $("read").hidden = true; });
 $("read").addEventListener("click", (e) => { if (e.target === $("read")) $("read").hidden = true; });
-$("readGo").addEventListener("click", () => {
-  const msg = $("readMsg"), all = load(READ) || {}, names = [];
-  msg.className = "error";
-  for (const t of things($("readText").value)) {
-    const name = t && typeof t.name === "string" ? t.name.trim() : "";
-    if (!name) continue;
-    const r = all[name.toLowerCase()] || (all[name.toLowerCase()] = { name });
-    if (Array.isArray(t.days)) r.days = t.days.map(String);      // the days they sent
-    if (Number.isFinite(Number(t.done)) && t.done !== null && t.done !== "") r.done = Number(t.done); // "done": 3 = three steps finished
-    if (t.food && typeof t.food === "object") r.food = t.food;   // their food answers
-    if (!names.includes(r.name)) names.push(r.name);
-  }
-  console.log("[READ] taken in:", names, all);
-  if (!names.length) { msg.textContent = 'Nothing found. Paste the JSON line of an email, like {"name":"anna","days":["2026-12-10"]}.'; return; }
-  save(READ, all);
-  gather(); draw();
-  $("readText").value = "";
-  $("fileText").value = fileNow();
-  msg.className = "ok";
-  msg.textContent = `✓ Added ${names.join(", ")}. Now copy the file below into data.json on GitHub, so everyone sees it.`;
-});
-$("fileCopy").addEventListener("click", async () => {
-  const box = $("fileText");
-  try { await navigator.clipboard.writeText(box.value); } catch { box.select(); document.execCommand("copy"); }
-  $("fileCopy").textContent = "Copied ✓";
-  setTimeout(() => { $("fileCopy").textContent = "Copy the file"; }, 2000);
-});
-$("readForget").addEventListener("click", () => {
-  store.del(READ); gather(); draw();
-  $("fileText").value = fileNow();
-  $("readMsg").className = "ok"; $("readMsg").textContent = "Back to what is in data.json.";
-});
 
 // ------------------------------ Start ------------------------------
 document.title = TITLE;
 $("title").textContent = TITLE;
 pane(false);
 (async () => {
-  // The people: read the file data.json, fresh every time the page loads
+  if (window.AWAY) return; // the old address: redirect.js is sending the visitor to the new one
+  // The people: read from the database, fresh every time the page loads
   try {
-    const res = await fetch("data.json?t=" + Date.now(), { cache: "no-store" });
-    if (!res.ok) throw new Error(`data.json answered ${res.status}`);
-    const data = await res.json();
-    PEOPLE = (Array.isArray(data) ? data : data.people || []).filter((p) => p && typeof p.name === "string");
-    console.log("[DATA] data.json read:", PEOPLE.length, "people", PEOPLE);
+    PEOPLE = (await api()).people;
   } catch (err) {
-    console.error("[DATA] data.json could not be read:", err.message || err);
-    $("dataError").textContent = "The people could not be loaded (data.json). Reload the page; if it stays, the file has a mistake.";
+    console.error("[DB] the people could not be read:", err.message || err);
+    $("dataError").textContent = "The people could not be loaded. Check your connection and reload the page.";
+  }
+  // Been here before on this phone: continue as you (if the database still knows the username)
+  const before = store.get("availability.code");
+  if (before) {
+    try { keep((await api({ action: "check", name: before })).person); myName = null; return open(before); }
+    catch (err) { if (err.status === 403) store.del("availability.code"); }
   }
   gather();
-  const back = username(store.get("availability.code") || ""); // been here before on this phone: continue as you
-  if (back) open(back);
-  else { picked = new Set((load(mine("days")) || []).filter((d) => d >= TODAY && inMonths(d))); draw(); }
+  picked = new Set((load(mine("days")) || []).filter((d) => d >= TODAY && inMonths(d)));
+  draw();
 })();
