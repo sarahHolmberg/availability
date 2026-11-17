@@ -7,12 +7,13 @@
  *   GET                                  -> { people: [{ name, done, days }] }   only people who have started
  *   POST { action: "check", name }       -> { person }    is this username on the list? (403 if not)
  *   POST { action: "days", name, days, note } -> { person }  save this person's free days (they are then on step 1 or further)
- *   POST { action: "food", name, food }  -> { person }    save this person's food answers
+ *   POST { action: "answer", name, form: "games" or "food", answer } -> { person }  save their answers to that step
+ *        (answering "games" moves a person who has shown their days onto the games step: GAMES_STEP)
  * A username that is not in the table is refused: the usernames are the code.
  *
  * For the organiser (the secret window on the page). key = ADMIN_KEY (CHANGE IN NETLIFY: Site configuration ->
  * Environment variables -> ADMIN_KEY = a secret of your own; without it this part stays closed):
- *   POST { action: "admin-list", key }               -> { people: [...everyone, with food and note] }
+ *   POST { action: "admin-list", key }               -> { people: [...everyone, with answers and note] }
  *   POST { action: "admin-save", key, name, done, days } -> add a person, or change their step / days (days optional)
  *   POST { action: "admin-remove", key, name }       -> remove the person (their username stops working)
  * -----------------------------------------------------------------------
@@ -23,6 +24,12 @@ import { run, tables } from '../shared/tables.mjs';
 
 const MAX_DAYS = 120;   // CHANGE HERE: the most days one person can send
 const MAX_STEP = 50;    // "done" can never be more than this
+const GAMES_STEP = 2;   // CHANGE HERE if the steps in config.js move: the number of the games step
+// The steps with questions: what may be ticked (saved under pickKey) and which boxes may be written in
+const FORMS = {
+  games: { pickKey: 'games', fields: ['other'] },
+  food: { pickKey: 'places', fields: ['order', 'soda'] },
+};
 
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest();
@@ -48,10 +55,10 @@ function cleanDays(days) {
   return [...out].sort();
 }
 
-/** A row of the table as the page gets it. full = with the food answers and the note (the person themself, or the organiser). */
+/** A row of the table as the page gets it. full = with the answers and the note (the person themself, or the organiser). */
 function shape(row, full) {
   const p = { name: row.name, done: row.done, days: parse(row.days, []) };
-  if (full) { p.food = parse(row.food, null); p.note = row.note || ''; }
+  if (full) { p.games = parse(row.games, null); p.food = parse(row.food, null); p.note = row.note || ''; }
   return p;
 }
 const find = async (name) => (await run(db.sql`SELECT * FROM road_people WHERE who = ${norm(name)}`))[0] || null;
@@ -117,15 +124,16 @@ export default async (req) => {
       return reply({ person: shape(await find(row.who), true) });
     }
 
-    if (action === 'food') {
-      const f = body.food && typeof body.food === 'object' ? body.food : {};
-      const food = {
-        places: (Array.isArray(f.places) ? f.places : []).map((x) => text(x, 40)).filter(Boolean).slice(0, 12),
-        order: text(f.order, 200),
-        soda: text(f.soda, 200),
-      };
-      await run(db.sql`UPDATE road_people SET food = ${JSON.stringify(food)}, updated_at = now() WHERE who = ${row.who}`);
-      console.log(`[ROAD] ${row.who} saved their food answers.`);
+    if (action === 'answer') {
+      const form = FORMS[body.form];
+      if (!form) return reply({ error: 'Unknown question.' }, 400);
+      const a = body.answer && typeof body.answer === 'object' ? body.answer : {};
+      const answer = { [form.pickKey]: (Array.isArray(a[form.pickKey]) ? a[form.pickKey] : []).map((x) => text(x, 40)).filter(Boolean).slice(0, 12) };
+      for (const f of form.fields) answer[f] = text(a[f], 200);
+      const done = body.form === 'games' && row.done >= GAMES_STEP - 1 ? Math.max(row.done, GAMES_STEP) : row.done;
+      if (body.form === 'games') await run(db.sql`UPDATE road_people SET games = ${JSON.stringify(answer)}, done = ${done}, updated_at = now() WHERE who = ${row.who}`);
+      else await run(db.sql`UPDATE road_people SET food = ${JSON.stringify(answer)}, updated_at = now() WHERE who = ${row.who}`);
+      console.log(`[ROAD] ${row.who} saved their ${body.form} answers.`);
       return reply({ person: shape(await find(row.who), true) });
     }
     return reply({ error: 'Unknown action.' }, 400);

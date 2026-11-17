@@ -4,7 +4,7 @@
  * The DATABASE table, and the people it starts with.
  *   road_people: one row per person: who (the username in small letters = the code), name (the username as shown),
  *                done (how many steps of the road they finished), days (their free days, as JSON text),
- *                food (their food answers, as JSON text), note (what they wrote with their days)
+ *                food / games (their answers to those steps, as JSON text), note (what they wrote with their days)
  *   road_meta  : which one-time jobs already ran (the first fill)
  * Not a function itself: it is outside netlify/functions, and Netlify bundles it into the function that imports it.
  * -----------------------------------------------------------------------
@@ -42,6 +42,7 @@ export function tables(db) {
             created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
           )`);
+        await run(db.sql`ALTER TABLE road_people ADD COLUMN IF NOT EXISTS games TEXT`);
         await run(db.sql`CREATE TABLE IF NOT EXISTS road_meta (name TEXT PRIMARY KEY, done_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
         // Only the request that manages to write the name does the first fill, even if two start at the same moment
         const won = await run(db.sql`INSERT INTO road_meta (name) VALUES ('first-people') ON CONFLICT DO NOTHING RETURNING name`);

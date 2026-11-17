@@ -1,7 +1,7 @@
 // The main page is the road: the steps to the dance meet and where everyone is on it.
 // The side pane holds the calendar: who is available, and you paint your own days. To SEND, you type your username:
 // it must be one of the names in the database (the code), and then "You" on the road becomes that username.
-// The people, their days, their step and their food answers are in the DATABASE (Netlify): the page reads them from
+// The people, their days, their step and their answers (games, food) are in the DATABASE (Netlify): the page reads them from
 // /api every time it loads, and saves there when somebody sends (netlify/functions/road.mjs). Every send also goes
 // out by EMAIL (Web3Forms), as a copy for the organiser. The organiser's window: hold a Sunday for 5 seconds.
 const $ = (id) => document.getElementById(id);
@@ -59,7 +59,7 @@ let folk = [];      // everybody on the road, from the database
 
 /** Put everybody together from PEOPLE (the database), and find you among them. */
 function gather() {
-  folk = PEOPLE.map((p) => ({ name: p.name, list: listDays(p.days), done: Number(p.done) || 0, food: p.food || null }));
+  folk = PEOPLE.map((p) => ({ name: p.name, list: listDays(p.days), done: Number(p.done) || 0, answers: { food: p.food || null, games: p.games || null } }));
   me = (myName && folk.find((p) => p.name.toLowerCase() === myName.toLowerCase())) || null;
   folk.forEach((p, i) => {
     p.list = p.list.filter(inMonths); // only the days on the calendar
@@ -67,7 +67,8 @@ function gather() {
     p.done = Math.min(STEPS.length, Math.max(p.done, p.list.length ? 1 : 0)); // days shown = step 1 finished
   });
 }
-const foodWords = (f) => [(f.places || []).join(", "), f.order, f.soda].filter(Boolean).join(" · ");
+/** Answers in one line: "Bowling, Darts · table tennis". */
+const answerWords = (x) => Object.values(x || {}).map((v) => (Array.isArray(v) ? v.join(", ") : v)).filter(Boolean).join(" · ");
 
 /** Days as words: "10-13 Dec, 14-16 Jan" (short), or one line per month for the email. */
 function inWords(days, forEmail) {
@@ -90,17 +91,15 @@ const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls)
 
 /** Where are you on the road? The step you finished last. Before you typed your username: the very first stop. */
 const nowAt = () => (me ? me.done : 0);
-const allStops = () => [{ icon: "🚩", title: "Start", text: "Show the days you are free to set off.",
-  more: "Everybody starts here. Open the 📅 Days tab and paint the days you are free. Press Send and type your username: that takes you to step 1." }, ...STEPS];
+const allStops = () => [{ icon: "🚩", title: "Start" }, ...STEPS];
 const stepName = (i) => (i ? `Step ${i} of ${STEPS.length}` : "Start");
 
+let panned = false; // has the page already panned to your step once?
 /** The stops of the road. Passed stops get a tick, the stop we are at NOW is the big green one, the rest is still grey. */
 function drawMap() {
   const map = $("map"), now = nowAt(), stops = allStops();
   map.textContent = "";
-  $("sub").textContent = !me ? "You are at the start. Open 📅 Days and show the days you are free."
-    : me.done >= STEPS.length ? `Hi ${me.name}. You have finished every step.`
-    : `Hi ${me.name}. Your next step: ${STEPS[me.done].title}.`;
+  $("sub").textContent = me ? `Hi ${me.name}` : "";
 
   // The card at the top: where we are now, and a bar with one piece per step
   const card = $("now");
@@ -120,7 +119,7 @@ function drawMap() {
     const pin = el("span", "pin", s.icon);
     const body = el("span", "about");
     body.append(el("span", "nr", i === now ? "📍 You are here" : i < now ? `✓ ${stepName(i)}` : stepName(i)),
-      el("b", "name", s.title), el("span", "what", s.text));
+      el("b", "name", s.title));
     if (here.length) {
       const who = el("span", "here");
       for (const p of here) {
@@ -131,12 +130,14 @@ function drawMap() {
       }
       body.append(who);
     }
-    body.append(el("span", "moreLink", "More ›"));
+    if (s.form) body.append(el("span", "moreLink", (me && me.answers[s.form.key]) ? "✓" : "›")); // a step with questions
     btn.append(pin, body);
     row.append(btn);
     map.append(row);
   });
   drawRoad(now);
+  focusSteps();
+  if (!panned && now > 0) { panned = true; setTimeout(() => map.children[now]?.scrollIntoView({ behavior: calm.matches ? "auto" : "smooth", block: "center" }), 400); } // pan to where you are
   if (shownStep !== null) info(shownStep); // the step window is open: bring it up to date
 }
 
@@ -147,14 +148,19 @@ function info(i) {
   const s = allStops()[i], now = nowAt(), box = $("infoCard");
   box.textContent = "";
   const here = folk.filter((p) => p.done === i && (i > 0 || p === me));
-  box.append(el("div", "bigIcon", s.icon), el("p", "nr", stepName(i)), el("h2", "", s.title),
-    el("p", "state " + (i < now ? "passed" : i === now ? "now" : ""), i < now ? "✓ Done" : i === now ? "📍 You are here" : "Still to come"),
-    el("p", "", s.more || s.text));
-  if (here.length) box.append(el("p", "soft", `Here now: ${here.map((p) => (p === me ? "you" : p.name)).join(", ")}`));
-  if (s.food) {
-    for (const p of folk) if (p !== me && p.food) box.append(el("p", "soft", `${p.name}: ${foodWords(p.food)}`)); // answers that were read
-    box.append(foodForm(s));
+  box.append(el("div", "bigIcon", s.icon), el("p", "nr", stepName(i)), el("h2", "", s.title));
+  if (i <= now) box.append(el("p", "state " + (i < now ? "passed" : "now"), i < now ? "✓" : "📍 You are here"));
+  if (here.length) {
+    const who = el("div", "here");
+    for (const p of here) {
+      const chip = el("span", "chip" + (p === me ? " me" : ""));
+      chip.style.setProperty("--c", p.colour);
+      chip.append(el("i"), p.name);
+      who.append(chip);
+    }
+    box.append(who);
   }
+  if (s.form) box.append(answerForm(s.form));
   const close = el("button", "link", "Close"); close.type = "button";
   close.addEventListener("click", closeInfo);
   box.append(close);
@@ -163,56 +169,55 @@ function info(i) {
 function closeInfo() { shownStep = null; $("info").hidden = true; }
 $("info").addEventListener("click", (e) => { if (e.target === $("info")) closeInfo(); });
 
-/** The food step: tick the places, write the usual order and the favourite soda, and Send saves it. Needs your username. */
-function foodForm(step) {
-  const form = el("form", "food");
+let justSaved = null; // the questions that were saved a moment ago (the window is drawn again, with "✓ Saved")
+/** The questions of a step (games, food): tick the choices, write in the boxes, Save. Needs your username. */
+function answerForm(f) {
+  const form = el("form", "answer");
   if (!me) {
-    const b = el("button", "primary", "Type your username to answer"); b.type = "button";
+    const b = el("button", "primary", "Your username"); b.type = "button";
     b.addEventListener("click", () => askCode());
     form.append(b);
     return form;
   }
-  const saved = me.food || {};
-  const ticked = new Set(saved.places || []);
-  const places = el("div", "places");
-  for (const name of step.food) {
+  const saved = (me.answers && me.answers[f.key]) || {};
+  const ticked = new Set(saved[f.pickKey] || []);
+  const picks = el("div", "places");
+  for (const name of f.picks) {
     const b = el("button", "", name); b.type = "button";
     b.setAttribute("aria-pressed", ticked.has(name));
     b.addEventListener("click", () => { ticked.has(name) ? ticked.delete(name) : ticked.add(name); b.setAttribute("aria-pressed", ticked.has(name)); });
-    places.append(b);
+    picks.append(b);
   }
-  const field = (label, value, hint) => {
+  form.append(picks);
+  const inputs = f.fields.map((x) => {
     const l = el("label"), input = el("input");
-    input.value = value || ""; input.placeholder = hint; input.maxLength = 200;
-    l.append(el("span", "", label), input);
+    input.value = saved[x.id] || ""; input.placeholder = x.hint; input.maxLength = 200;
+    l.append(el("span", "", x.label), input);
     form.append(l);
     return input;
-  };
-  form.append(el("p", "q", "Where do you eat? Tick all that fit."), places);
-  const order = field("What do you usually order there?", saved.order, "e.g. cheeseburger meal, no onion");
-  const soda = field("Your favourite soda", saved.soda, "e.g. Fanta");
-  const msg = el("p", "error"), send = el("button", "primary", "Send my food preference");
+  });
+  const msg = el("p", "error"), send = el("button", "primary", "Save");
+  if (justSaved === f.key) { msg.className = "ok"; msg.textContent = "✓ Saved"; justSaved = null; }
   send.type = "submit";
   form.append(msg, send);
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     msg.className = "error";
-    if (!ticked.size && !order.value.trim() && !soda.value.trim()) { msg.textContent = "Tick a place or write something first."; return; }
-    const answer = { places: [...ticked], order: order.value.trim(), soda: soda.value.trim() };
-    send.disabled = true; send.textContent = "Sending…"; msg.textContent = "";
+    const answer = { [f.pickKey]: [...ticked] };
+    f.fields.forEach((x, i) => { answer[x.id] = inputs[i].value.trim(); });
+    if (!ticked.size && f.fields.every((x) => !answer[x.id])) { msg.textContent = "Tick or write something first."; return; }
+    send.disabled = true; send.textContent = "Saving…"; msg.textContent = "";
     try {
-      keep((await api({ action: "food", name: me.name, food: answer })).person); // saved in the database
-      mail(`${TITLE}: food preference of ${me.name}`, {                          // and a copy by email
-        "Eats at": answer.places.join(", ") || "(nothing ticked)",
-        "Usual order": answer.order || "(not written)",
-        "Favourite soda": answer.soda || "(not written)",
-      }, { food: answer }).catch(() => {});
-      gather();
-      msg.className = "ok"; msg.textContent = "✓ Saved. Thank you!";
+      keep((await api({ action: "answer", form: f.key, name: me.name, answer })).person); // saved in the database
+      const lines = { [f.key === "food" ? "Picked" : "Games"]: answer[f.pickKey].join(", ") || "(nothing ticked)" };
+      f.fields.forEach((x) => { lines[x.label] = answer[x.id] || "(not written)"; });
+      mail(`${TITLE}: ${f.key} of ${me.name}`, lines, { [f.key]: answer }).catch(() => {}); // and a copy by email
+      justSaved = f.key;
+      gather(); draw(); // the road and this window are drawn again
     } catch (err) {
       msg.textContent = `Not saved: ${err.message || "no connection"}. Try again.`;
     } finally {
-      send.disabled = false; send.textContent = "Send my food preference";
+      send.disabled = false; send.textContent = "Save";
     }
   });
   return form;
@@ -233,6 +238,25 @@ function drawRoad(upTo) {
 }
 addEventListener("resize", () => drawMap());
 
+// The scroll effect: the step in the middle of the screen is full size; the further a step is from the middle, the
+// smaller and fainter it is, and its card slides in from its own side. So scrolling feels like panning along the road.
+// (The page also snaps gently onto the nearest step when scrolling stops: style.css, scroll-snap.)
+const calm = matchMedia("(prefers-reduced-motion: reduce)");
+let focusQueued = false;
+function focusSteps() {
+  focusQueued = false;
+  const mid = innerHeight / 2;
+  for (const stop of $("map").children) {
+    const r = stop.getBoundingClientRect();
+    const k = calm.matches ? 1 : Math.max(0, 1 - Math.abs(r.top + r.height / 2 - mid) / (innerHeight * 0.55)); // 1 = in the middle
+    stop.style.setProperty("--k", (k * k * (3 - 2 * k)).toFixed(3)); // smooth in and out
+  }
+}
+const queueFocus = () => { if (!focusQueued) { focusQueued = true; requestAnimationFrame(focusSteps); } };
+addEventListener("scroll", queueFocus, { passive: true });
+addEventListener("resize", queueFocus);
+
+
 // ------------------------------ The side pane ------------------------------
 function pane(open) {
   document.body.classList.toggle("paneOpen", open);
@@ -248,7 +272,7 @@ $("shade").addEventListener("click", () => pane(false));
 function draw() {
   drawMap();
   const others = folk.filter((p) => p !== me);
-  $("hello").textContent = me ? `Hi ${me.name}, paint your days` : "Paint the days you are free";
+  $("hello").textContent = me ? `Hi ${me.name}` : "";
   $("leave").hidden = !me;
 
   // Who is on the calendar
@@ -475,9 +499,7 @@ async function sendDays() {
     keep((await api({ action: "days", name: me.name, days, note })).person); // saved in the database: everyone sees it
     mail(`${TITLE}: ${me.name} (${n} ${n === 1 ? "day" : "days"})`, lines, { days }).catch(() => {}); // and a copy by email
     gather(); draw();
-    $("doneText").textContent = n
-      ? `Thanks ${me.name}. Your ${n} ${n === 1 ? "day is" : "days are"} saved. You are now on step ${me.done}: ${allStops()[me.done].title}.`
-      : `Thanks ${me.name}. It is saved that you have no days.`;
+    $("doneText").textContent = n ? `${me.name} · ${n} ${n === 1 ? "day" : "days"}` : me.name;
     $("done").hidden = false;
   } catch (err) {
     $("sendError").textContent = `Not saved: ${err.message || "no connection"}. Your days are kept; try again.`;
@@ -515,7 +537,7 @@ async function admin(body) {
   }
 }
 
-/** Everybody in the database: their step (− and + move them along the road), their days, food answers and note. */
+/** Everybody in the database: their step (− and + move them along the road), their days, answers and note. */
 function drawAdmin(people) {
   const list = $("adminList"), stops = allStops();
   list.textContent = "";
@@ -533,7 +555,8 @@ function drawAdmin(people) {
     row.append(el("b", "who", p.name), step,
       el("p", "soft", p.done ? `${stepName(p.done)}: ${(stops[p.done] || stops[stops.length - 1]).title}` : "Not started"),
       el("p", "", p.days.length ? `📅 ${inWords(p.days)}` : "📅 no days yet"));
-    if (p.food) row.append(el("p", "", `🍔 ${foodWords(p.food)}`));
+    if (p.games) row.append(el("p", "", `🎳 ${answerWords(p.games)}`));
+    if (p.food) row.append(el("p", "", `🍔 ${answerWords(p.food)}`));
     if (p.note) row.append(el("p", "", `✏️ ${p.note}`));
     row.append(del);
     list.append(row);

@@ -15,28 +15,24 @@ const MONTHS_SHOWN = ["2026-12", "2027-01"];
 const HOME_URL = "https://colon-four.netlify.app/";
 const REDIRECT_SECONDS = 5; // how long the old address shows "Redirecting you to..." first
 
-// The road on the main page: the steps, in order.
-//   icon = the picture in the circle, title = the short name, text = one sentence about it,
-//   more = the longer explanation a person sees when they tap the step,
-//   food = (only for the food step) the places a person can tick; their answers are emailed to you.
+// The road on the main page: the steps, in order. icon = the picture in the circle, title = its name.
+// A step with "form" has questions, answered with a tap on the step (needs the person's username):
+//   picks = the choices to tick, pickKey = under which name they are saved, fields = the boxes to write in.
+// The answers are saved in the database and emailed to you. Answering the games step moves a person onto it.
 const STEPS = [
-  { icon: "📅", title: "Days shown", text: "You have shown the days you are free.",
-    more: "Open the 📅 Days tab, type your code and paint the days you can come. Press Send. You can change your days later and send again." },
-  { icon: "📝", title: "The day explained", text: "What is going to happen on the day has been explained to you.",
-    more: "You get the plan for the day: where to be, at what time, what we film and how long it takes." },
-  { icon: "📞", title: "Video call", text: "We spoke on a video call about the dance meet and answered all your questions.",
-    more: "A short video call where everything about the dance meet is explained once more. Bring every question you have: this is the moment to ask." },
-  { icon: "🍔", title: "Food preference", text: "You told us what you like to eat and drink.",
-    more: "Do you eat at Max, McDonald's, Burger King, or do you prefer kebab? Tell us what you usually order there and your favourite soda, so the right food is there on the day.",
-    food: ["Max", "McDonald's", "Burger King", "Kebab"] },
-  { icon: "💸", title: "25% paid", text: "You got 25% of the money you get for the day.",
-    more: "A quarter of your money for the day is paid to you before the day. You get the rest on the day itself." },
-  { icon: "🎫", title: "Tickets bought", text: "Your tickets to the town where the dance takes place are bought.",
-    more: "We buy your tickets to the town where the dance takes place, and you get them from us." },
-  { icon: "🎥", title: "Videographer booked", text: "The videographer for the day is booked.",
-    more: "The person who films the dance is booked for the dates everybody can come." },
-  { icon: "🤝", title: "Everybody agreed", text: "Everybody agrees on what will happen and on the dates to be there.",
-    more: "The last step: everybody has said yes to the plan and to the dates. After this, we meet and dance." },
+  { icon: "📅", title: "Days shown" },
+  { icon: "🎳", title: "Games",
+    form: { key: "games", pickKey: "games", picks: ["Bowling", "Billiards", "Darts"],
+            fields: [{ id: "other", label: "Another game", hint: "e.g. table tennis" }] } },
+  { icon: "📝", title: "The day explained" },
+  { icon: "📞", title: "Video call" },
+  { icon: "🍔", title: "Food preference",
+    form: { key: "food", pickKey: "places", picks: ["Max", "McDonald's", "Burger King", "Kebab"],
+            fields: [{ id: "order", label: "Usual order", hint: "e.g. cheeseburger meal" },
+                     { id: "soda", label: "Favourite soda", hint: "e.g. Fanta" }] } },
+  { icon: "🎫", title: "Tickets bought" },
+  { icon: "🎥", title: "Videographer booked" },
+  { icon: "🤝", title: "Everybody agreed" },
 ];
 
 // The name: the title of the browser tab, the top of the page and the email subject.
