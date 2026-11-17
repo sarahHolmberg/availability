@@ -22,11 +22,23 @@
     -webkit-font-smoothing: antialiased;
   }
   main { position: relative; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; overflow: hidden; }
+  /* The logo, and the three little white labels around it (sizes in em of the logo, so they scale with it) */
+  .mark { --L: clamp(96px, 27vw, 460px); position: relative; font-size: var(--L); } /* --L = the logo size */
   h1 {
-    margin: 0; font-weight: 800; letter-spacing: -.055em; line-height: .8;
-    font-size: clamp(96px, 27vw, 460px); padding-right: .04em; /* the R is the last letter: it needs a little room */
+    margin: 0; font-size: 1em; font-weight: 800; letter-spacing: -.055em; line-height: .8;
+    padding-right: .04em; /* the R is the last letter: it needs a little room */
     user-select: none; animation: in 1.4s cubic-bezier(.2, .7, .1, 1) both;
   }
+  .tag {
+    position: absolute; font-size: max(10px, calc(var(--L) * .05)); font-weight: 600; letter-spacing: .01em; line-height: 1;
+    padding: .38em .95em .42em; background: var(--ink); color: var(--bg); text-decoration: none; white-space: nowrap;
+    border: 1px solid var(--ink); box-shadow: 0 0 0 2px var(--bg); /* a thin black ring: the label stands apart from the letters */
+    transition: background .25s, color .25s; animation: fade 1s 1s both;
+  }
+  .tag:hover, .tag:focus-visible { background: var(--bg); color: var(--ink); outline: none; }
+  .tag.roadmap { left: calc(var(--L) * 2.02); top: calc(var(--L) * .05); transform: translateY(-100%); }
+  .tag.contracts { left: calc(var(--L) * .3); bottom: calc(var(--L) * .055); transform: translateY(100%); }
+  .tag.invoices { right: calc(var(--L) * .03); bottom: calc(var(--L) * .055); transform: translateY(100%); }
   @keyframes in { from { opacity: 0; letter-spacing: .02em; filter: blur(6px); } }
   /* The corners: tiny, wide-spaced capitals */
   .corner {
@@ -42,16 +54,22 @@
   .corner span { display: block; margin-bottom: 6px; }
   @keyframes fade { from { opacity: 0; } }
   a:focus-visible { outline: 1px solid var(--ink); outline-offset: 6px; }
+  @media (max-width: 600px) { .mark { --L: 33vw; } }
   @media (min-width: 720px) { .corner { bottom: 36px; } .corner.left { left: 40px; } .corner.right { right: 40px; } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 <main>
-  <h1 aria-label=":fouR">:fouR</h1>
+  <div class="mark">
+    <h1 aria-label=":fouR">:fouR</h1>
+    <a class="tag roadmap" href="/roadmap/">roadmap</a>
+    <a class="tag contracts" href="/contract-signer/">contracts</a>
+    <a class="tag invoices" href="/invoices/">invoices</a>
+  </div>
   <p class="corner left">© 2026</p>
   <!-- CHANGE HERE: the contact address -->
-  <p class="corner right"><span>Contact</span><a href="mailto:mindbrain312@gmail.com">mindbrain312@gmail.com</a></p>
+  <p class="corner right"><span>Contact</span><a href="mailto:colonfour@proton.me">colonfour@proton.me</a></p>
 </main>
 <script src="redirect.js"></script>
 </body>

@@ -6,9 +6,10 @@ The :fouR website, in the :fouR look (black, white, heavy letters; `logo.png` an
 
 | Address | What it is | Files |
 |---|---|---|
-| `/` | The landing page: the logo, big, and the contact address bottom right | `index.html` |
+| `/` | The landing page: the logo, big, with three white labels (roadmap, contracts, invoices) that link to the pages, and the contact address (colonfour@proton.me) bottom right | `index.html` |
 | `/roadmap/` | The road to the dance meet and the available days | `roadmap/`, `config.js` |
-| `/contract-signer/` | Upload a contract (PDF), sign it with your finger, send it | `contract-signer/` |
+| `/contract-signer/` (also `/contracts`) | Upload a contract (PDF), sign it with your finger, send it | `contract-signer/` |
+| `/invoices/` (also `/invoice`) | How we handle invoices for our dancers (one sentence for now) | `invoices/index.html` |
 
 The old GitHub address shows "Redirecting you to colon-four.netlify.app/roadmap", counts down 5 seconds and goes
 there (`redirect.js`). GitHub Pages must stay switched on for that.

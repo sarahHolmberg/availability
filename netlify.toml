@@ -2,6 +2,17 @@
   publish = "."
   functions = "netlify/functions"
 
+# Short addresses: /invoice and /contracts go to their pages
+[[redirects]]
+  from = "/invoice"
+  to = "/invoices/"
+  status = 301
+
+[[redirects]]
+  from = "/contracts"
+  to = "/contract-signer/"
+  status = 301
+
 # The contract signer stores signed contracts at /api/contract
 [[redirects]]
   from = "/api/contract"
