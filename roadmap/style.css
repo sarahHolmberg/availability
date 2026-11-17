@@ -227,14 +227,6 @@ body.paneOpen .shade { opacity: 1; pointer-events: auto; }
 .stepper button:disabled { opacity: .3; cursor: default; }
 main header .error { margin-top: 8px; }
 
-/* The old address: "Redirecting you to ..." */
-.away { position: fixed; inset: 0; z-index: 99; background: var(--bg); display: grid; place-content: center; justify-items: center; gap: 10px; padding: 24px; text-align: center; }
-.away h1 { font-size: 64px; font-weight: 800; letter-spacing: -.04em; line-height: 1; margin-bottom: 18px; }
-.away p { color: var(--soft); }
-.away a:not(.primary) { color: var(--ink); font-size: 22px; font-weight: 700; overflow-wrap: anywhere; }
-.awayTime b { display: grid; place-items: center; width: 84px; height: 84px; margin: 14px auto; border-radius: 50%; border: 4px solid var(--ink); color: var(--ink); font-size: 36px; font-variant-numeric: tabular-nums; }
-.away .primary { display: inline-grid; place-items: center; text-decoration: none; }
-
 /* The scroll effect: --k = 1 for the step in the middle of the screen, 0 far away (set by app.js) */
 html { scroll-snap-type: y proximity; }
 main header, .stop { scroll-snap-align: center; }

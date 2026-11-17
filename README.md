@@ -1,9 +1,40 @@
-# :fouR: the road to the dance meet, and the available days
+# :fouR
 
-A small phone-first page for the dance meet, in the :fouR look (black, white, heavy letters; `logo.png` and `favicon.png`).
+The :fouR website, in the :fouR look (black, white, heavy letters; `logo.png` and `favicon.png`).
 
 **The website: https://colon-four.netlify.app/** (Netlify deploys this repository by itself after every push to `main`.)
-The old GitHub address shows "Redirecting you to colon-four.netlify.app", counts down 5 seconds and goes there.
+
+| Address | What it is | Files |
+|---|---|---|
+| `/` | The landing page: the logo, big, and the contact address bottom right | `index.html` |
+| `/roadmap/` | The road to the dance meet and the available days | `roadmap/`, `config.js` |
+| `/contract-signer/` | Upload a contract (PDF), sign it with your finger, send it | `contract-signer/` |
+
+The old GitHub address shows "Redirecting you to colon-four.netlify.app/roadmap", counts down 5 seconds and goes
+there (`redirect.js`). GitHub Pages must stay switched on for that.
+
+## The contract signer (/contract-signer/)
+
+1. **Upload contract** (a PDF, at most 4.5 MB). It shows below; the bar with the file name folds it away and back.
+2. **✍️ Sign**: a window with your name and a white box: sign with your finger (or mouse), **Done**.
+3. The signature lands on the signature line. **Tap anywhere on the contract to move it.**
+4. **Send**: the signed PDF is stored and **the link is emailed** to you (Web3Forms, like everything else). The signer
+   can also download it. Under the signature the PDF gets the name and the date and time, small.
+
+**Where the signature lands**, without you doing anything: the page looks in the PDF for, in this order:
+1. **`[sign]`** written in the document: the signature goes exactly there, and covers the tag. *(Most exact: type
+   `[sign]` where the signature should go before you make the PDF.)*
+2. a signature field made in the PDF;
+3. the word **Signature** (or "Sign here", "Signed by"): right after it, on that line;
+4. a line of underscores `______`.
+
+When there are several, the **last** one in the document is used (usually the signer's block). Nothing found: the page
+asks to tap the spot.
+
+The signed contracts are kept in **Netlify Blobs** (store `contracts`); a link only works with its long random code.
+Anyone with the page can upload, so keep the page's address to the people who need it.
+
+# The roadmap (/roadmap/)
 
 ## What the page does
 
@@ -52,6 +83,8 @@ secret of your own → then Deploys → Trigger deploy. Without it the organiser
   questions of the games and food steps), `TITLE`. If the games step moves, change `GAMES_STEP` in
   `netlify/functions/road.mjs` too.
 - `netlify/functions/road.mjs`: the function behind `/api` (reads and saves the people).
+- `netlify/functions/contract.mjs`: the function behind `/api/contract` (stores and hands out signed contracts).
+- `contract-signer/lib/`: the PDF tools (pdf.js to show a PDF, pdf-lib to write the signature in), kept here so the page needs no other website.
 - `netlify.toml`: tells Netlify where the page and the function are.
 
 ## Testing a change before it goes live (local preview)
@@ -66,4 +99,4 @@ npm run preview
 
 Opens the whole site on http://localhost:8888 with the real function but a **test database** that starts fresh every
 time. Nothing touches the live site. Organiser key in the preview: `test`. To see the redirect screen, add `?away=1`
-to the address.
+to the address. Signed contracts are kept in memory there too.

@@ -11,9 +11,8 @@ const MONTHS_SHOWN = ["2026-12", "2027-01"];
 // Their usernames are also the CODE: only a username that is in the database can send.
 // You change them in the organiser's window on the page: open 📅 Days and hold any Sunday for 5 seconds.
 
-// The address of the website. Someone who opens the old GitHub address is sent here.
-const HOME_URL = "https://colon-four.netlify.app/";
-const REDIRECT_SECONDS = 5; // how long the old address shows "Redirecting you to..." first
+// The email address shown on the landing page (bottom right) is in index.html.
+// The redirect from the old GitHub address is set in redirect.js.
 
 // The road on the main page: the steps, in order. icon = the picture in the circle, title = its name.
 // A step with "form" has questions, answered with a tap on the step (needs the person's username):

@@ -1,0 +1,96 @@
+/* The contract signer, in the :fouR look: black, white, heavy round letters. */
+:root {
+  --bg: #000; --card: #111; --ink: #fff; --soft: #8f8f8f; --line: #2b2b2b; --bad: #ff7a70;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.45 Poppins, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+[hidden] { display: none !important; }
+h1, h2, p { margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.soft { color: var(--soft); }
+.error { color: var(--bad); font-size: 14px; }
+.error:empty { display: none; }
+.primary {
+  display: inline-grid; place-items: center; background: var(--ink); color: var(--bg); font-weight: 700; font-size: 17px;
+  padding: 12px 24px; border-radius: 14px; min-height: 50px; text-decoration: none;
+}
+.primary:disabled { opacity: .45; cursor: default; }
+.primary:active:not(:disabled) { transform: scale(.98); }
+.ghost { min-height: 50px; padding: 12px 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--card); font-weight: 600; }
+.link { color: var(--soft); text-decoration: underline; font-size: 14px; padding: 10px; }
+
+main { max-width: 760px; margin: 0 auto; padding: 18px 16px 140px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.logo { color: var(--ink); text-decoration: none; font-weight: 800; font-size: 26px; letter-spacing: -.05em; }
+header h1 { font-size: 12px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--soft); }
+
+/* 1. Upload */
+.drop {
+  display: grid; place-items: center; gap: 4px; min-height: 52vh; border: 2px dashed var(--line); border-radius: 26px;
+  text-align: center; cursor: pointer; transition: border-color .2s, background .2s;
+}
+.drop:hover, .drop.over { border-color: var(--ink); background: var(--card); }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.drop:focus-within { border-color: var(--ink); }
+.plus { display: grid; place-items: center; width: 76px; height: 76px; border-radius: 50%; background: var(--ink); color: var(--bg); font-size: 44px; font-weight: 400; line-height: 1; margin-bottom: 10px; }
+.drop b { font-size: 22px; letter-spacing: -.01em; }
+.drop .soft { font-size: 12px; letter-spacing: .2em; }
+body.loaded .drop { display: none; }
+
+/* 2. The contract */
+.docBar {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border-radius: 16px;
+  background: var(--card); border: 1px solid var(--line); text-align: left;
+}
+.pdfIcon { flex: none; padding: 4px 6px; border-radius: 6px; background: var(--ink); color: var(--bg); font-size: 10px; font-weight: 800; letter-spacing: .05em; }
+.fname { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.caret { transition: transform .25s; font-size: 18px; }
+.docBar[aria-expanded="false"] .caret { transform: rotate(-90deg); }
+.pages { display: grid; gap: 14px; margin-top: 14px; }
+.page { position: relative; background: #fff; border-radius: 4px; overflow: hidden; box-shadow: 0 10px 30px rgba(255, 255, 255, .06); }
+.page canvas { display: block; width: 100%; height: auto; }
+.page.placing { cursor: crosshair; }
+.sig { position: absolute; pointer-events: none; outline: 1.5px dashed rgba(0, 0, 0, .35); outline-offset: 2px; border-radius: 2px; animation: land .5s cubic-bezier(.2, .9, .3, 1.3); }
+@keyframes land { from { transform: scale(1.4); opacity: 0; } }
+#another { display: block; margin: 10px auto 0; }
+
+/* The bar at the bottom */
+footer {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 3; background: rgba(0, 0, 0, .92); backdrop-filter: blur(8px);
+  border-top: 1px solid var(--line); padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+}
+footer > * { max-width: 728px; margin-left: auto; margin-right: auto; }
+.barRow { display: flex; gap: 10px; }
+.barRow .primary { flex: 1; }
+footer .error { margin-top: 8px; }
+.placeHint { text-align: center; font-weight: 700; margin-bottom: 10px; animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .45; } }
+
+/* The windows */
+.modal { position: fixed; inset: 0; z-index: 5; display: grid; place-items: end center; padding: 12px; background: rgba(0, 0, 0, .8); }
+@media (min-width: 640px) { .modal { place-items: center; } }
+.sheet {
+  position: relative; width: 100%; max-width: 560px; display: grid; gap: 12px; padding: 18px; border-radius: 24px;
+  background: var(--card); border: 1px solid var(--line); animation: up .22s ease-out;
+}
+@keyframes up { from { transform: translateY(24px); opacity: 0; } }
+.sheet.center { justify-items: center; text-align: center; padding: 28px 18px 18px; }
+.close { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); }
+#name {
+  font: inherit; font-size: 17px; width: calc(100% - 50px); padding: 12px 14px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+.inkBox { position: relative; height: 220px; border-radius: 16px; background: #fff; overflow: hidden; }
+#ink { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.inkLine { position: absolute; left: 18px; right: 18px; bottom: 54px; border-bottom: 1.5px solid #c9c9c9; color: #b5b5b5; font-size: 18px; line-height: 1; pointer-events: none; padding-bottom: 4px; }
+.tick { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--ink); color: var(--bg); font-size: 32px; font-weight: 700; }
+.sheet.center h2 { font-size: 26px; margin-bottom: 6px; }
+.sheet.center .primary, .sheet.center .ghost { width: 100%; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

@@ -5,114 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>:fouR</title>
+<meta name="description" content=":fouR">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;800&display=swap">
+<style>
+  /* The landing page: the logo, big, and the contact address. Nothing else. */
+  :root { --bg: #000; --ink: #fff; --soft: #8a8a8a; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 500 12px/1.4 Poppins, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { position: relative; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; overflow: hidden; }
+  h1 {
+    margin: 0; font-weight: 800; letter-spacing: -.055em; line-height: .8;
+    font-size: clamp(96px, 27vw, 460px); padding-right: .04em; /* the R is the last letter: it needs a little room */
+    user-select: none; animation: in 1.4s cubic-bezier(.2, .7, .1, 1) both;
+  }
+  @keyframes in { from { opacity: 0; letter-spacing: .02em; filter: blur(6px); } }
+  /* The corners: tiny, wide-spaced capitals */
+  .corner {
+    position: absolute; bottom: calc(22px + env(safe-area-inset-bottom)); margin: 0;
+    font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--soft);
+    animation: fade 1.2s .7s both;
+  }
+  .corner.left { left: 24px; }
+  .corner.right { right: 24px; text-align: right; }
+  .corner a { color: var(--ink); text-decoration: none; letter-spacing: .14em; text-transform: lowercase; font-size: 12px; }
+  .corner a::after { content: ""; display: block; height: 1px; margin-top: 3px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .4s ease; }
+  .corner a:hover::after, .corner a:focus-visible::after { transform: scaleX(1); transform-origin: left; }
+  .corner span { display: block; margin-bottom: 6px; }
+  @keyframes fade { from { opacity: 0; } }
+  a:focus-visible { outline: 1px solid var(--ink); outline-offset: 6px; }
+  @media (min-width: 720px) { .corner { bottom: 36px; } .corner.left { left: 40px; } .corner.right { right: 40px; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
 </head>
 <body>
-
-<!-- The main page: the road to the dance meet -->
 <main>
-  <header>
-    <h1 id="title">:fouR</h1>
-    <p id="sub" class="soft"></p>
-    <p id="dataError" class="error" role="alert"></p>
-    <!-- Where we are now: tap it to jump to that step -->
-    <button id="now" class="nowCard" type="button"></button>
-  </header>
-  <div class="mapBox">
-    <svg id="road" aria-hidden="true" preserveAspectRatio="none"><path class="todo"/><path class="gone"/></svg>
-    <ol id="map" class="map"></ol>
-  </div>
+  <h1 aria-label=":fouR">:fouR</h1>
+  <p class="corner left">© 2026</p>
+  <!-- CHANGE HERE: the contact address -->
+  <p class="corner right"><span>Contact</span><a href="mailto:mindbrain312@gmail.com">mindbrain312@gmail.com</a></p>
 </main>
-
-<!-- The tab on the right edge: opens and closes the side pane -->
-<button id="tab" class="tab" type="button" aria-controls="pane" aria-expanded="false"><span aria-hidden="true">📅</span> Days</button>
-<div id="shade" class="shade"></div>
-
-<!-- The side pane: the calendar -->
-<aside id="pane" class="pane" aria-label="Available days">
-  <div class="paneTop">
-    <div>
-      <p id="hello" class="hello"></p>
-      <h2>Available days</h2>
-    </div>
-    <button id="leave" class="link" type="button" hidden>Not you?</button>
-    <button id="paneClose" class="close" type="button" aria-label="Close">✕</button>
-  </div>
-
-  <div class="paneBody">
-    <!-- Who is on the calendar: a colour, a name and their days in words -->
-    <ul id="legend" class="legend"></ul>
-
-
-    <!-- The months are drawn here -->
-    <div id="months"></div>
-
-    <label id="noteBox" class="note">
-      <textarea id="note" rows="2" maxlength="500" placeholder="Note (optional)" aria-label="Note (optional)"></textarea>
-    </label>
-  </div>
-
-  <footer>
-    <div id="barIn" class="bar">
-      <div class="count"><b id="count">0</b> <span id="countLabel" class="soft">days</span><button id="clear" class="link" type="button">Clear</button></div>
-      <button id="send" class="primary" type="button">Send</button>
-    </div>
-    <p id="sendError" class="error" role="alert"></p>
-  </footer>
-</aside>
-
-<!-- More about a step (tap a step on the road) -->
-<div id="info" class="gate" hidden>
-  <div id="infoCard" class="card infoCard"></div>
-</div>
-
-<!-- The username -->
-<div id="gate" class="gate" hidden>
-  <form id="gateForm" class="card" autocomplete="off">
-    <h2>Your username</h2>
-    <input id="code" inputmode="text" autocapitalize="none" autocorrect="off" spellcheck="false"
-           placeholder="Your username" aria-label="Your username" enterkeyhint="go" maxlength="31">
-    <p id="gateError" class="error" role="alert"></p>
-    <button class="primary" type="submit">Continue</button>
-    <button id="gateClose" class="link" type="button">Not now</button>
-  </form>
-</div>
-
-<!-- The organiser's window: hold a Sunday for 5 seconds -->
-<div id="read" class="gate" hidden>
-  <div class="card infoCard">
-    <h2>Organiser</h2>
-    <form id="adminForm" class="adminLine" autocomplete="off">
-      <input id="adminKey" type="password" placeholder="Organiser key" aria-label="Organiser key">
-      <button class="primary" type="submit">Open</button>
-    </form>
-    <p id="readMsg" class="error" role="status"></p>
-    <div id="adminList"></div>
-    <form id="adminAdd" class="adminLine" autocomplete="off" hidden>
-      <input id="adminName" placeholder="New username" aria-label="New username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="31">
-      <button class="primary" type="submit">Add</button>
-    </form>
-    <button id="readClose" class="link" type="button">Close</button>
-  </div>
-</div>
-
-<!-- Sent -->
-<div id="done" class="gate" hidden>
-  <div class="card">
-    <div class="tick" aria-hidden="true">✓</div>
-    <h2>Saved</h2>
-    <p id="doneText"></p>
-    <button id="again" class="primary" type="button">OK</button>
-  </div>
-</div>
-
-<script src="config.js"></script>
 <script src="redirect.js"></script>
-<script src="app.js"></script>
 </body>
 </html>

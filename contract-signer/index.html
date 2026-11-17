@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>:fouR · contract</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="/contract-signer/signer.css">
+</head>
+<body>
+
+<main>
+  <header>
+    <a class="logo" href="/" aria-label=":fouR home">:fouR</a>
+    <h1>Contract</h1>
+  </header>
+
+  <!-- 1. Upload -->
+  <label id="drop" class="drop">
+    <input id="file" type="file" accept="application/pdf,.pdf">
+    <span class="plus" aria-hidden="true">+</span>
+    <b>Upload contract</b>
+    <span class="soft">PDF</span>
+  </label>
+  <p id="fileError" class="error" role="alert"></p>
+
+  <!-- 2. The contract: read it (fold it away with the bar), see where the signature lands -->
+  <section id="doc" hidden>
+    <button id="toggle" class="docBar" type="button" aria-expanded="true" aria-controls="pages">
+      <span class="pdfIcon" aria-hidden="true">PDF</span>
+      <span id="fname" class="fname"></span>
+      <span class="caret" aria-hidden="true">▾</span>
+    </button>
+    <div id="pages" class="pages"></div>
+    <button id="another" class="link" type="button">Another file</button>
+  </section>
+</main>
+
+<!-- The bar at the bottom: Sign, then Send -->
+<footer id="bar" hidden>
+  <p id="placeHint" class="placeHint" hidden>👆 Tap the spot for the signature</p>
+  <div class="barRow">
+    <button id="sign" class="primary" type="button">✍️ Sign</button>
+    <button id="resign" class="ghost" type="button" hidden>✍️</button>
+    <button id="send" class="primary" type="button" hidden>Send</button>
+  </div>
+  <p id="sendError" class="error" role="alert"></p>
+</footer>
+
+<!-- The signing window: your name, and the pad to write on -->
+<div id="pad" class="modal" hidden>
+  <form id="padForm" class="sheet" autocomplete="on">
+    <button id="padClose" class="close" type="button" aria-label="Close">✕</button>
+    <input id="name" name="name" autocomplete="name" placeholder="Your full name" aria-label="Your full name" maxlength="80" required>
+    <div class="inkBox">
+      <canvas id="ink" aria-label="Sign here with your finger"></canvas>
+      <span class="inkLine" aria-hidden="true">✕</span>
+    </div>
+    <p id="padError" class="error" role="alert"></p>
+    <div class="barRow">
+      <button id="clearInk" class="ghost" type="button">Clear</button>
+      <button class="primary" type="submit">Done</button>
+    </div>
+  </form>
+</div>
+
+<!-- Sent -->
+<div id="sent" class="modal" hidden>
+  <div class="sheet center">
+    <div class="tick" aria-hidden="true">✓</div>
+    <h2>Sent</h2>
+    <a id="download" class="primary" download>Download</a>
+    <button id="sentClose" class="ghost" type="button">OK</button>
+  </div>
+</div>
+
+<script src="/config.js"></script>
+<script src="/contract-signer/lib/pdf.min.js"></script>
+<script src="/contract-signer/lib/pdf-lib.min.js"></script>
+<script src="/redirect.js"></script>
+<script src="/contract-signer/signer.js"></script>
+</body>
+</html>

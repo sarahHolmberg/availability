@@ -2,7 +2,13 @@
   publish = "."
   functions = "netlify/functions"
 
-# The page talks to /api (shorter than /.netlify/functions/road)
+# The contract signer stores signed contracts at /api/contract
+[[redirects]]
+  from = "/api/contract"
+  to = "/.netlify/functions/contract"
+  status = 200
+
+# The roadmap talks to /api (shorter than /.netlify/functions/road)
 [[redirects]]
   from = "/api"
   to = "/.netlify/functions/road"

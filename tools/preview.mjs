@@ -2,13 +2,13 @@
 /**
  * tools/preview.mjs
  * -----------------------------------------------------------------------
- * Local preview: the whole website (the page + the real function in netlify/functions) on your computer or Codespace,
+ * Local preview: the whole website (the pages + the real functions in netlify/functions) on your computer or Codespace,
  * with a TEST database. Nothing touches the live site or its data, so try anything.
  *
  *   npm install          (once)
  *   npm run preview      -> http://localhost:8888
  *
- * The test database starts fresh (with the first people) every time; Ctrl+C stops the preview.
+ * The test database and the test contract store start fresh every time; Ctrl+C stops the preview.
  * Organiser key in the preview: test
  * -----------------------------------------------------------------------
  */
@@ -23,17 +23,19 @@ const PORT = Number(process.env.PORT) || 8888;
 process.env.ADMIN_KEY ??= 'test'; // CHANGE HERE: the organiser key of the preview (the real one is in Netlify)
 
 register('./preview/hooks.mjs', import.meta.url); // "@netlify/database" -> the test database
-const road = (await import(pathToFileURL(path.join(ROOT, 'netlify/functions/road.mjs')).href)).default;
+const fn = async (name) => (await import(pathToFileURL(path.join(ROOT, `netlify/functions/${name}.mjs`)).href)).default;
+const ROUTES = { '/api': await fn('road'), '/api/contract': await fn('contract') };
 
-const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.png': 'image/png' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.png': 'image/png', '.pdf': 'application/pdf' };
 const readBody = (req) => new Promise((ok) => { const c = []; req.on('data', (d) => c.push(d)); req.on('end', () => ok(Buffer.concat(c))); });
 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   try {
-    if (url.pathname === '/api' || url.pathname === '/.netlify/functions/road') {
+    const route = ROUTES[url.pathname];
+    if (route) {
       const body = ['GET', 'HEAD'].includes(req.method) ? undefined : await readBody(req);
-      const r = await road(new Request(url, { method: req.method, headers: req.headers, body }));
+      const r = await route(new Request(url, { method: req.method, headers: req.headers, body }));
       res.writeHead(r.status, Object.fromEntries(r.headers));
       return res.end(Buffer.from(await r.arrayBuffer()));
     }
