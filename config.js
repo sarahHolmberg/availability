@@ -36,3 +36,9 @@ const STEPS = [
 
 // The name: the title of the browser tab, the top of the page and the email subject.
 const TITLE = ":fouR";
+
+// The songs picked to dance to: the album covers peeking out at the bottom left of the roadmap.
+// With two or more they take turns in front. image = a square picture in roadmap/albums/ (about 480 x 480).
+const ALBUMS = [
+  { image: "/roadmap/albums/odeal-my-heart.jpg", title: "My Heart", artist: "Odeal" },
+];

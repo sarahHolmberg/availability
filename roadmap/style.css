@@ -242,3 +242,35 @@ main header { scroll-snap-align: start; }
 .stop:not(.passed):not(.now) .about { opacity: calc((.3 + .7 * var(--k)) * .8); }
 .infoCard .here { justify-content: center; }
 @media (prefers-reduced-motion: reduce) { html { scroll-snap-type: none; } }
+
+/* The album covers, peeking out at the bottom left, half off the screen (albums.js) */
+.albums {
+  position: fixed; left: 0; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 2;
+  display: grid; justify-items: start; gap: 8px; padding: 0; text-align: left;
+}
+.albums .stack { position: relative; display: block; width: 112px; height: 112px; }
+.albums .cover {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 10px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .08);
+  transform-origin: 30% 80%;
+  transition: transform .55s cubic-bezier(.2, .8, .2, 1), filter .55s, opacity .4s;
+  user-select: none; -webkit-user-select: none;
+}
+/* depth 0 = in front, leaning out; behind it the others, further in and darker */
+.albums .cover[data-depth="0"] { transform: translateX(-46%) rotate(-9deg); }
+.albums .cover[data-depth="1"] { transform: translateX(-50%) translateY(-22px) rotate(-17deg) scale(.94); filter: brightness(.55); }
+.albums .cover[data-depth="2"] { transform: translateX(-54%) translateY(-40px) rotate(-25deg) scale(.88); filter: brightness(.35); }
+.albums .cover[data-depth="3"] { transform: translateX(-58%) translateY(-52px) rotate(-31deg) scale(.82); opacity: 0; }
+.albums .cover.leaving { transform: translateX(-120%) rotate(-28deg) scale(.9); filter: brightness(.6); }
+/* tapped: the front cover slides out whole */
+.albums.out .cover[data-depth="0"] { transform: translateX(16px) translateY(-14px) rotate(-3deg) scale(1.35); }
+.albums.out .cover:not([data-depth="0"]) { opacity: 0; }
+.albums .caption {
+  display: grid; max-width: 110px; padding-left: 10px; line-height: 1.2;
+  opacity: 0; transform: translateY(4px); transition: opacity .35s, transform .35s;
+}
+.albums .caption.show { opacity: 1; transform: none; }
+.albums .caption b { font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+.albums .caption span { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--soft); overflow-wrap: anywhere; }
+.albums.out .caption { transform: translateX(14px); }
+body.paneOpen .albums { opacity: 0; pointer-events: none; }

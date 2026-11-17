@@ -44,6 +44,10 @@ Anyone with the page can upload, so keep the page's address to the people who ne
   No explanations on the page: those are given in the video call.
 - **Scrolling pans along the road**: the step in the middle of the screen is full size, the others smaller and fainter,
   and the page settles gently on the nearest step. When the page opens, it pans to the step you are at.
+- **The songs** picked to dance to: their album covers peek out at the bottom left, half off the screen, with the
+  song and artist under them. With two or more they take turns in front (every 4 seconds). Tap to slide the front
+  cover out whole; tap again to tuck it back. **Add a song:** put a square picture in `roadmap/albums/` and a line in
+  `ALBUMS` in `config.js`.
 - **Tap a step** to see who is there. Two steps have questions (needs the person's username):
   **Games** (bowling, billiards, darts, or another game; answering it moves the person onto that step) and
   **Food preference** (Max, McDonald's, Burger King, kebab; usual order; favourite soda).
