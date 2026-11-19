@@ -274,3 +274,16 @@ main header { scroll-snap-align: start; }
 .albums .caption span { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--soft); overflow-wrap: anywhere; }
 .albums.out .caption { transform: translateX(14px); }
 body.paneOpen .albums { opacity: 0; pointer-events: none; }
+
+/* The agree step and the call times */
+.chip.ok { border-style: solid; }
+.agreedRow { margin-top: 6px; }
+.answer.agree { justify-items: center; }
+.answer.agree .here { justify-content: center; }
+.places button:disabled { opacity: .3; text-decoration: line-through; cursor: default; }
+.adminTimes { display: grid; gap: 8px; text-align: left; padding: 12px; border: 1px solid var(--line); border-radius: 14px; }
+.adminTimes h3 { margin: 0; font-size: 15px; }
+.timeList { display: flex; flex-wrap: wrap; gap: 6px; }
+.timeChip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; border-radius: 99px; border: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+.timeChip button { width: 26px; height: 26px; border-radius: 50%; background: var(--card); font-size: 16px; line-height: 1; }
+#timeNew { color-scheme: dark; }

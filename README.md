@@ -40,8 +40,10 @@ Anyone with the page can upload, so keep the page's address to the people who ne
 
 ## What the page does
 
-- **The main page is the road**: the steps to the day (days shown, games, the day explained, video call, food
-  preference, tickets bought, videographer booked, everybody agreed) and, at each stop, the people who are there now.
+- **The main page is the road**: first the steps the dancer does (days shown, book the video call, games, food
+  preference, video call, everybody agreed), then ours (tickets bought, videographer booked); at each stop, the people
+  who are there now. What the dancer does moves them on by itself; the video call, tickets and videographer you move
+  with − and + in the organiser's window.
   The stop you are at is the big white one (also named in the card at the top); passed stops have a tick.
   No explanations on the page: those are given in the video call.
 - **Scrolling pans along the road**: the step in the middle of the screen is full size, the others smaller and fainter,
@@ -50,9 +52,11 @@ Anyone with the page can upload, so keep the page's address to the people who ne
   song and artist under them. With two or more they take turns in front (every 4 seconds). Tap to slide the front
   cover out whole; tap again to tuck it back. **Add a song:** put a square picture in `roadmap/albums/` and a line in
   `ALBUMS` in `config.js`.
-- **Tap a step** to see who is there. Two steps have questions (needs the person's username):
-  **Games** (bowling, billiards, darts, or another game; answering it moves the person onto that step) and
-  **Food preference** (Max, McDonald's, Burger King, kebab; usual order; favourite soda).
+- **Tap a step** to see who is there. The dancer's steps (needs their username):
+  **Book the video call** (one of the times you set, or they write one; a booked time is greyed for others),
+  **Games** (bowling, billiards, darts, or another game), **Food preference** (Max, McDonald's, Burger King, kebab;
+  usual order; favourite soda), and **Everybody agreed**: an **I agree** button, once they have had the video call.
+  Everyone who agreed is shown on that step with a ✓.
 - **The 📅 Days tab** on the right edge slides the side pane in (and out again). In it: December and January, a
   coloured dot on each day somebody is free (one colour per person), and each person's days in words.
 - **Anyone can paint days** in the pane: **swipe sideways** across days to paint them, swipe over painted days to
@@ -76,7 +80,8 @@ Anyone with the page can upload, so keep the page's address to the people who ne
 Open the 📅 Days pane and **keep any Sunday pressed for 5 seconds**. Type the organiser key. Then you can:
 
 - see everybody, with their days, games and food answers, and note;
-- move somebody along the road with **−** and **+**;
+- move somebody along the road with **−** and **+** (always one step from where they are now);
+- set the **video call times** people can book (add a date and time, × to take one away);
 - **add** a username (so that person can send), or **remove** one.
 
 **The organiser key: set it once in Netlify.** Site configuration → Environment variables → add `ADMIN_KEY` with a
@@ -86,7 +91,7 @@ secret of your own → then Deploys → Trigger deploy. Without it the organiser
 
 - `config.js`: `WEB3FORMS_KEY` (where the email copies go), `MONTHS_SHOWN` (the months on the calendar), `HOME_URL`
   and `REDIRECT_SECONDS` (the redirect from the old address), `STEPS` (the steps of the road: picture, name, and the
-  questions of the games and food steps), `TITLE`. If the games step moves, change `GAMES_STEP` in
+  questions of the games and food steps), `TITLE`. If the steps move, change `STEP` in
   `netlify/functions/road.mjs` too.
 - `netlify/functions/road.mjs`: the function behind `/api` (reads and saves the people).
 - `netlify/functions/contract.mjs`: the function behind `/api/contract` (stores and hands out signed contracts).

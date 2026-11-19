@@ -98,6 +98,14 @@
       <button class="primary" type="submit">Open</button>
     </form>
     <p id="readMsg" class="error" role="status"></p>
+    <div id="adminTimes" class="adminTimes" hidden>
+      <h3>🗓️ Video call times</h3>
+      <div id="timeList" class="timeList"></div>
+      <form id="timeAdd" class="adminLine">
+        <input id="timeNew" type="datetime-local" aria-label="New video call time">
+        <button class="primary" type="submit">Add</button>
+      </form>
+    </div>
     <div id="adminList"></div>
     <form id="adminAdd" class="adminLine" autocomplete="off" hidden>
       <input id="adminName" placeholder="New username" aria-label="New username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="31">

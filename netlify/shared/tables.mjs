@@ -4,7 +4,9 @@
  * The DATABASE table, and the people it starts with.
  *   road_people: one row per person: who (the username in small letters = the code), name (the username as shown),
  *                done (how many steps of the road they finished), days (their free days, as JSON text),
- *                food / games (their answers to those steps, as JSON text), note (what they wrote with their days)
+ *                food / games / call (their answers to those steps, as JSON text; call = the video call time they booked),
+ *                agreed (they pressed "I agree"), note (what they wrote with their days)
+ *   road_settings: settings saved in the organiser's window, e.g. call_times (the times to book a video call)
  *   road_meta  : which one-time jobs already ran (the first fill)
  * Not a function itself: it is outside netlify/functions, and Netlify bundles it into the function that imports it.
  * -----------------------------------------------------------------------
@@ -43,6 +45,9 @@ export function tables(db) {
             updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
           )`);
         await run(db.sql`ALTER TABLE road_people ADD COLUMN IF NOT EXISTS games TEXT`);
+        await run(db.sql`ALTER TABLE road_people ADD COLUMN IF NOT EXISTS call TEXT`);
+        await run(db.sql`ALTER TABLE road_people ADD COLUMN IF NOT EXISTS agreed BOOLEAN NOT NULL DEFAULT false`);
+        await run(db.sql`CREATE TABLE IF NOT EXISTS road_settings (name TEXT PRIMARY KEY, value TEXT NOT NULL)`);
         await run(db.sql`CREATE TABLE IF NOT EXISTS road_meta (name TEXT PRIMARY KEY, done_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
         // Only the request that manages to write the name does the first fill, even if two start at the same moment
         const won = await run(db.sql`INSERT INTO road_meta (name) VALUES ('first-people') ON CONFLICT DO NOTHING RETURNING name`);
@@ -53,6 +58,15 @@ export function tables(db) {
               ON CONFLICT DO NOTHING`);
           }
           console.warn(`[ROAD DATABASE] First fill done: ${FIRST_PEOPLE.length} people put in.`);
+        }
+        // One time: the steps were put in a new order (Nov 2026). Old step number -> new step number:
+        //   old 1 Days, 2 Games, 3 Day explained, 4 Video call, 5 Food, 6 Tickets, 7 Videographer, 8 Agreed
+        //   new 1 Days, 2 Book the call, 3 Games, 4 Food, 5 Video call, 6 Agreed, 7 Tickets, 8 Videographer
+        const moved = await run(db.sql`INSERT INTO road_meta (name) VALUES ('steps-2026-11') ON CONFLICT DO NOTHING RETURNING name`);
+        if (moved.length) {
+          await run(db.sql`UPDATE road_people SET agreed = true WHERE done >= 8`);
+          await run(db.sql`UPDATE road_people SET done = CASE WHEN done <= 1 THEN done WHEN done <= 3 THEN 1 WHEN done <= 5 THEN 5 WHEN done = 6 THEN 7 ELSE 8 END`);
+          console.warn('[ROAD DATABASE] Steps renumbered for the new order.');
         }
       })().catch((err) => { ready = null; throw err; });
     }

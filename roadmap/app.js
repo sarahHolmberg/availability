@@ -1,7 +1,7 @@
 // The main page is the road: the steps to the dance meet and where everyone is on it.
 // The side pane holds the calendar: who is available, and you paint your own days. To SEND, you type your username:
 // it must be one of the names in the database (the code), and then "You" on the road becomes that username.
-// The people, their days, their step and their answers (games, food) are in the DATABASE (Netlify): the page reads them from
+// The people, their days, their step and their answers (call, games, food, agreed) are in the DATABASE (Netlify): the page reads them from
 // /api every time it loads, and saves there when somebody sends (netlify/functions/road.mjs). Every send also goes
 // out by EMAIL (Web3Forms), as a copy for the organiser. The organiser's window: hold a Sunday for 5 seconds.
 const $ = (id) => document.getElementById(id);
@@ -18,6 +18,20 @@ const TODAY = key(now.getFullYear(), now.getMonth(), now.getDate());
 const inMonths = (k) => MONTHS_SHOWN.includes(k.slice(0, 7));
 let PEOPLE = []; // the people from the database (read when the page loads): [{ name, done, days, food }]
 const API = "/api"; // the function netlify/functions/road.mjs
+let CALL_TIMES = [], TAKEN = []; // the times to book a video call (set by the organiser), and the ones already booked
+
+/** Read the road from the database: the people and the call times. */
+async function readRoad() {
+  const data = await api();
+  PEOPLE = data.people || [];
+  CALL_TIMES = data.callTimes || [];
+  TAKEN = data.taken || [];
+}
+/** A call time as words: "Wed 25 Nov · 18:00". */
+const timeWords = (t) => {
+  const d = new Date(t);
+  return isNaN(d) ? t : d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) + " · " + t.slice(11, 16);
+};
 
 /** Ask the database: no body = read the people; a body = { action, ... }. Throws (with the reason and .status) when refused. */
 async function api(body) {
@@ -59,7 +73,8 @@ let folk = [];      // everybody on the road, from the database
 
 /** Put everybody together from PEOPLE (the database), and find you among them. */
 function gather() {
-  folk = PEOPLE.map((p) => ({ name: p.name, list: listDays(p.days), done: Number(p.done) || 0, answers: { food: p.food || null, games: p.games || null } }));
+  folk = PEOPLE.map((p) => ({ name: p.name, list: listDays(p.days), done: Number(p.done) || 0, agreed: !!p.agreed,
+    answers: { call: p.call || null, food: p.food || null, games: p.games || null } }));
   me = (myName && folk.find((p) => p.name.toLowerCase() === myName.toLowerCase())) || null;
   folk.forEach((p, i) => {
     p.list = p.list.filter(inMonths); // only the days on the calendar
@@ -111,7 +126,7 @@ function drawMap() {
   card.onclick = () => map.children[now].scrollIntoView({ behavior: "smooth", block: "center" });
 
   stops.forEach((s, i) => {
-    const here = folk.filter((p) => p.done === i && (i > 0 || p === me)); // a person who has not started only shows to themselves
+    const here = folk.filter((p) => p.done === i && (i > 0 || p === me) && !(s.agree && p.agreed)); // a person who has not started only shows to themselves; on the agree step, who agreed shows with a tick
     if (!me && i === 0) here.unshift({ name: "You", colour: "var(--go)", you: true }); // not typed a username yet: you stand at the start
     const row = el("li", "stop " + (i % 2 ? "right" : "left") + (i < now ? " passed" : i === now ? " now" : ""));
     const btn = el("button"); btn.type = "button";
@@ -130,7 +145,15 @@ function drawMap() {
       }
       body.append(who);
     }
-    if (s.form) body.append(el("span", "moreLink", (me && me.answers[s.form.key]) ? "✓" : "›")); // a step with questions
+    if (s.agree) { // everyone who agreed, with a tick
+      const ok = folk.filter((p) => p.agreed);
+      if (ok.length) {
+        const row = el("span", "here agreedRow");
+        for (const p of ok) { const chip = el("span", "chip ok" + (p === me ? " me" : "")); chip.style.setProperty("--c", p.colour); chip.append("✓ ", p === me ? `${p.name} (you)` : p.name); row.append(chip); }
+        body.append(row);
+      }
+    }
+    if (s.form || s.agree) body.append(el("span", "moreLink", (me && (s.agree ? me.agreed : answered(me, s.form.key))) ? "✓" : "›")); // a step to do
     btn.append(pin, body);
     row.append(btn);
     map.append(row);
@@ -147,7 +170,7 @@ function info(i) {
   shownStep = i;
   const s = allStops()[i], now = nowAt(), box = $("infoCard");
   box.textContent = "";
-  const here = folk.filter((p) => p.done === i && (i > 0 || p === me));
+  const here = folk.filter((p) => p.done === i && (i > 0 || p === me) && !(s.agree && p.agreed));
   box.append(el("div", "bigIcon", s.icon), el("p", "nr", stepName(i)), el("h2", "", s.title));
   if (i <= now) box.append(el("p", "state " + (i < now ? "passed" : "now"), i < now ? "✓" : "📍 You are here"));
   if (here.length) {
@@ -161,6 +184,7 @@ function info(i) {
     box.append(who);
   }
   if (s.form) box.append(answerForm(s.form));
+  if (s.agree) box.append(agreeBox(i));
   const close = el("button", "link", "Close"); close.type = "button";
   close.addEventListener("click", closeInfo);
   box.append(close);
@@ -169,8 +193,11 @@ function info(i) {
 function closeInfo() { shownStep = null; $("info").hidden = true; }
 $("info").addEventListener("click", (e) => { if (e.target === $("info")) closeInfo(); });
 
+/** Has this person answered these questions? */
+const answered = (p, key) => { const a = p.answers[key]; return !!a && Object.values(a).some((v) => (Array.isArray(v) ? v.length : v)); };
+
 let justSaved = null; // the questions that were saved a moment ago (the window is drawn again, with "✓ Saved")
-/** The questions of a step (games, food): tick the choices, write in the boxes, Save. Needs your username. */
+/** The questions of a step (call, games, food): tick the choices, write in the boxes, Save. Needs your username. */
 function answerForm(f) {
   const form = el("form", "answer");
   if (!me) {
@@ -181,14 +208,24 @@ function answerForm(f) {
   }
   const saved = (me.answers && me.answers[f.key]) || {};
   const ticked = new Set(saved[f.pickKey] || []);
+  const mine = new Set(ticked);
+  // The choices: fixed ones, or (for the call) the organiser's times still to come; a time someone else booked is greyed
+  const choices = f.picks === "callTimes"
+    ? CALL_TIMES.filter((t) => new Date(t) > new Date() || mine.has(t)).map((t) => ({ value: t, label: timeWords(t), off: TAKEN.includes(t) && !mine.has(t) }))
+    : f.picks.map((p) => ({ value: p, label: p }));
   const picks = el("div", "places");
-  for (const name of f.picks) {
-    const b = el("button", "", name); b.type = "button";
-    b.setAttribute("aria-pressed", ticked.has(name));
-    b.addEventListener("click", () => { ticked.has(name) ? ticked.delete(name) : ticked.add(name); b.setAttribute("aria-pressed", ticked.has(name)); });
+  const buttons = choices.map((c) => {
+    const b = el("button", "", c.label); b.type = "button"; b.disabled = c.off;
+    b.setAttribute("aria-pressed", ticked.has(c.value));
+    b.addEventListener("click", () => {
+      if (ticked.has(c.value)) ticked.delete(c.value);
+      else { if (f.one) ticked.clear(); ticked.add(c.value); }
+      buttons.forEach((x, n) => x.setAttribute("aria-pressed", ticked.has(choices[n].value)));
+    });
     picks.append(b);
-  }
-  form.append(picks);
+    return b;
+  });
+  if (choices.length) form.append(picks);
   const inputs = f.fields.map((x) => {
     const l = el("label"), input = el("input");
     input.value = saved[x.id] || ""; input.placeholder = x.hint; input.maxLength = 200;
@@ -209,18 +246,52 @@ function answerForm(f) {
     send.disabled = true; send.textContent = "Saving…"; msg.textContent = "";
     try {
       keep((await api({ action: "answer", form: f.key, name: me.name, answer })).person); // saved in the database
-      const lines = { [f.key === "food" ? "Picked" : "Games"]: answer[f.pickKey].join(", ") || "(nothing ticked)" };
+      const label = { call: "Time", food: "Picked", games: "Games" }[f.key];
+      const picked = answer[f.pickKey].map((v) => (f.key === "call" ? timeWords(v) : v)).join(", ");
+      const lines = { [label]: picked || "(nothing ticked)" };
       f.fields.forEach((x) => { lines[x.label] = answer[x.id] || "(not written)"; });
-      mail(`${TITLE}: ${f.key} of ${me.name}`, lines, { [f.key]: answer }).catch(() => {}); // and a copy by email
+      mail(`${TITLE}: ${f.key === "call" ? "video call booked by" : f.key + " of"} ${me.name}`, lines, { [f.key]: answer }).catch(() => {}); // and a copy by email
+      if (f.key === "call") await readRoad().catch(() => {}); // the booked times change
       justSaved = f.key;
       gather(); draw(); // the road and this window are drawn again
     } catch (err) {
       msg.textContent = `Not saved: ${err.message || "no connection"}. Try again.`;
+      if (err.status === 409) { await readRoad().catch(() => {}); gather(); }
     } finally {
       send.disabled = false; send.textContent = "Save";
     }
   });
   return form;
+}
+
+/** The agree step: everybody who agreed (with a tick), and the "I agree" button for you, once you have had the video call. */
+function agreeBox(i) {
+  const box = el("div", "answer agree");
+  const ok = folk.filter((p) => p.agreed);
+  if (ok.length) {
+    const row = el("div", "here");
+    for (const p of ok) { const chip = el("span", "chip ok" + (p === me ? " me" : "")); chip.style.setProperty("--c", p.colour); chip.append("✓ ", p.name); row.append(chip); }
+    box.append(row);
+  }
+  if (!me) {
+    const b = el("button", "primary", "Your username"); b.type = "button";
+    b.addEventListener("click", () => askCode());
+    box.append(b);
+  } else if (me.agreed) {
+    box.append(el("p", "ok", "✓ You agreed"));
+  } else if (me.done >= i - 1) {
+    const msg = el("p", "error"), b = el("button", "primary", "I agree"); b.type = "button";
+    b.addEventListener("click", async () => {
+      b.disabled = true; msg.textContent = "";
+      try {
+        keep((await api({ action: "agree", name: me.name })).person);
+        mail(`${TITLE}: ${me.name} agreed`, { Agreed: "Yes" }, { agreed: true }).catch(() => {});
+        gather(); draw();
+      } catch (err) { msg.textContent = `Not saved: ${err.message || "no connection"}. Try again.`; b.disabled = false; }
+    });
+    box.append(msg, b);
+  }
+  return box;
 }
 
 /** The line that joins the stops: it winds from circle to circle, solid green as far as upTo, dotted after that. */
@@ -516,7 +587,7 @@ try { adminKey = sessionStorage.getItem("availability.key") || ""; } catch {}
 function secret() {
   console.log("[SECRET] the organiser's window opens");
   $("read").hidden = false; $("readMsg").textContent = "";
-  if (adminKey) admin({ action: "admin-list" }); else { $("adminList").textContent = ""; $("adminAdd").hidden = true; $("adminForm").hidden = false; $("adminKey").focus(); }
+  if (adminKey) admin({ action: "admin-list" }); else { $("adminList").textContent = ""; $("adminAdd").hidden = true; $("adminTimes").hidden = true; $("adminForm").hidden = false; $("adminKey").focus(); }
 }
 
 /** One organiser action on the database; then the list is drawn again and the road follows. */
@@ -524,16 +595,17 @@ async function admin(body) {
   const msg = $("readMsg");
   msg.className = "error"; msg.textContent = "";
   try {
-    const { people } = await api({ ...body, key: adminKey });
+    const { people, callTimes } = await api({ ...body, key: adminKey });
+    if (callTimes) drawTimes(callTimes);
     try { sessionStorage.setItem("availability.key", adminKey); } catch {}
     $("adminForm").hidden = true; $("adminAdd").hidden = false;
     drawAdmin(people);
-    PEOPLE = (await api()).people;            // the road: read fresh
+    await readRoad();                         // the road: read fresh
     if (myName) { const self = people.find((p) => p.name.toLowerCase() === myName.toLowerCase()); if (self) keep(self); }
     gather(); draw();
   } catch (err) {
     msg.textContent = err.message || "No connection.";
-    if (err.status === 403 || err.status === 503) { adminKey = ""; $("adminForm").hidden = false; $("adminAdd").hidden = true; $("adminList").textContent = ""; }
+    if (err.status === 403 || err.status === 503) { adminKey = ""; $("adminForm").hidden = false; $("adminAdd").hidden = true; $("adminTimes").hidden = true; $("adminList").textContent = ""; }
   }
 }
 
@@ -544,7 +616,7 @@ function drawAdmin(people) {
   if (!people.length) list.append(el("p", "soft", "Nobody yet. Add a username below."));
   for (const p of people) {
     const row = el("div", "adminRow"), step = el("div", "stepper");
-    const move = (by) => admin({ action: "admin-save", name: p.name, done: p.done + by });
+    const move = (by) => admin({ action: "admin-save", name: p.name, by });
     const minus = el("button", "", "−"), plus = el("button", "", "+"), del = el("button", "link", "Remove");
     minus.type = plus.type = del.type = "button";
     minus.disabled = p.done <= (p.days.length ? 1 : 0); plus.disabled = p.done >= STEPS.length;
@@ -555,13 +627,37 @@ function drawAdmin(people) {
     row.append(el("b", "who", p.name), step,
       el("p", "soft", p.done ? `${stepName(p.done)}: ${(stops[p.done] || stops[stops.length - 1]).title}` : "Not started"),
       el("p", "", p.days.length ? `📅 ${inWords(p.days)}` : "📅 no days yet"));
+    if (p.call) row.append(el("p", "", `🗓️ ${[...(p.call.times || []).map(timeWords), p.call.other].filter(Boolean).join(" · ")}`));
     if (p.games) row.append(el("p", "", `🎳 ${answerWords(p.games)}`));
     if (p.food) row.append(el("p", "", `🍔 ${answerWords(p.food)}`));
     if (p.note) row.append(el("p", "", `✏️ ${p.note}`));
+    if (p.agreed) row.append(el("p", "", "🤝 agreed"));
     row.append(del);
     list.append(row);
   }
 }
+/** The times to book a video call: each with × to take it away, and a box to add one. */
+let adminTimes = [];
+function drawTimes(times) {
+  adminTimes = times;
+  $("adminTimes").hidden = false;
+  const list = $("timeList");
+  list.textContent = "";
+  for (const t of times) {
+    const chip = el("span", "timeChip", timeWords(t)), x = el("button", "", "×");
+    x.type = "button"; x.setAttribute("aria-label", `Remove ${timeWords(t)}`);
+    x.addEventListener("click", () => admin({ action: "admin-times", times: adminTimes.filter((v) => v !== t) }));
+    chip.append(x);
+    list.append(chip);
+  }
+}
+$("timeAdd").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const t = $("timeNew").value; // "2026-11-25T18:00"
+  if (!t) return;
+  $("timeNew").value = "";
+  admin({ action: "admin-times", times: [...adminTimes, t.slice(0, 16)] });
+});
 $("adminForm").addEventListener("submit", (e) => { e.preventDefault(); adminKey = $("adminKey").value; $("adminKey").value = ""; admin({ action: "admin-list" }); });
 $("adminAdd").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -581,7 +677,7 @@ pane(false);
   if (window.AWAY) return; // the old address: redirect.js is sending the visitor to the new one
   // The people: read from the database, fresh every time the page loads
   try {
-    PEOPLE = (await api()).people;
+    await readRoad();
   } catch (err) {
     console.error("[DB] the people could not be read:", err.message || err);
     $("dataError").textContent = "The people could not be loaded. Check your connection and reload the page.";
