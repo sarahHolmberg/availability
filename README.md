@@ -9,6 +9,7 @@ The :fouR website, in the :fouR look (black, white, heavy letters; `logo.png` an
 | `/` | The landing page: the logo, big, with three white labels (roadmap, contracts, invoices) that link to the pages, and the contact address (colonfour@proton.me) bottom right | `index.html` |
 | `/roadmap/` | The road to the dance meet and the available days | `roadmap/`, `config.js` |
 | `/contract-signer/` (also `/contracts`) | Upload a contract (PDF), sign it with your finger, send it | `contract-signer/` |
+| `/about/` (also `/about-us`) | About us: who we are, our question, until 2028 (linked bottom left on the landing page) | `about/index.html` |
 | `/invoices/` (also `/invoice`) | How we handle invoices for our dancers (one sentence for now) | `invoices/index.html` |
 
 The old GitHub address shows "Redirecting you to colon-four.netlify.app/roadmap", counts down 5 seconds and goes

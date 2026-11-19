@@ -52,6 +52,8 @@
   .corner a::after { content: ""; display: block; height: 1px; margin-top: 3px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .4s ease; }
   .corner a:hover::after, .corner a:focus-visible::after { transform: scaleX(1); transform-origin: left; }
   .corner span { display: block; margin-bottom: 6px; }
+  .corner.left a { display: inline-block; margin-bottom: 6px; text-transform: none; letter-spacing: .08em; }
+  .corner .year { display: block; margin: 0; }
   @keyframes fade { from { opacity: 0; } }
   a:focus-visible { outline: 1px solid var(--ink); outline-offset: 6px; }
   @media (max-width: 600px) { .mark { --L: 33vw; } }
@@ -67,7 +69,7 @@
     <a class="tag contracts" href="/contract-signer/">contracts</a>
     <a class="tag invoices" href="/invoices/">invoices</a>
   </div>
-  <p class="corner left">© 2026</p>
+  <p class="corner left"><a href="/about/">About us</a><span class="year">© 2026</span></p>
   <!-- CHANGE HERE: the contact address -->
   <p class="corner right"><span>Contact</span><a href="mailto:colonfour@proton.me">colonfour@proton.me</a></p>
 </main>

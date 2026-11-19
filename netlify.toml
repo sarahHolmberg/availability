@@ -2,7 +2,12 @@
   publish = "."
   functions = "netlify/functions"
 
-# Short addresses: /invoice and /contracts go to their pages
+# Short addresses: /invoice, /contracts and /about-us go to their pages
+[[redirects]]
+  from = "/about-us"
+  to = "/about/"
+  status = 301
+
 [[redirects]]
   from = "/invoice"
   to = "/invoices/"
