@@ -39,6 +39,8 @@
   .tag.roadmap { left: calc(var(--L) * 2.02); top: calc(var(--L) * .05); transform: translateY(-100%); }
   .tag.contracts { left: calc(var(--L) * .3); bottom: calc(var(--L) * .055); transform: translateY(100%); }
   .tag.invoices { right: calc(var(--L) * .03); bottom: calc(var(--L) * .055); transform: translateY(100%); }
+  .tag.about { left: calc(var(--L) * -.03); top: calc(var(--L) * .17); transform: translateY(-100%); }       /* on top of the colon */
+  .tag.contact { left: calc(var(--L) * 1.27); top: calc(var(--L) * .5); }                                     /* across the u */
   @keyframes in { from { opacity: 0; letter-spacing: .02em; filter: blur(6px); } }
   /* The corners: tiny, wide-spaced capitals */
   .corner {
@@ -52,8 +54,6 @@
   .corner a::after { content: ""; display: block; height: 1px; margin-top: 3px; background: currentColor; transform: scaleX(0); transform-origin: right; transition: transform .4s ease; }
   .corner a:hover::after, .corner a:focus-visible::after { transform: scaleX(1); transform-origin: left; }
   .corner span { display: block; margin-bottom: 6px; }
-  .corner.left a { display: inline-block; margin-bottom: 6px; text-transform: none; letter-spacing: .08em; }
-  .corner .year { display: block; margin: 0; }
   @keyframes fade { from { opacity: 0; } }
   a:focus-visible { outline: 1px solid var(--ink); outline-offset: 6px; }
   @media (max-width: 600px) { .mark { --L: 33vw; } }
@@ -68,10 +68,11 @@
     <a class="tag roadmap" href="/roadmap/">roadmap</a>
     <a class="tag contracts" href="/contract-signer/">contracts</a>
     <a class="tag invoices" href="/invoices/">invoices</a>
+    <a class="tag about" href="/about/">about us</a>
+    <!-- CHANGE HERE: the contact address -->
+    <a class="tag contact" href="mailto:colonfour@proton.me" title="colonfour@proton.me">contact</a>
   </div>
-  <p class="corner left"><a href="/about/">About us</a><span class="year">© 2026</span></p>
-  <!-- CHANGE HERE: the contact address -->
-  <p class="corner right"><span>Contact</span><a href="mailto:colonfour@proton.me">colonfour@proton.me</a></p>
+  <p class="corner left">© 2026</p>
 </main>
 <script src="redirect.js"></script>
 </body>

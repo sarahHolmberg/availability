@@ -316,22 +316,32 @@ function nextFor(p) {
   return { wait: true, end: true };
 }
 
-/** The card at the bottom: "✓ Saved", then the next step (one tap opens it), or "all done for now". */
+/** The dancer's own steps, done or not (for the dots on the card). */
+const ownSteps = (p) => [p.list.length > 0, answered(p, "call"), answered(p, "games"), answered(p, "food"), p.agreed];
+
+/** The card at the bottom, as few words as possible and never pushy: "✓ Saved", a row of dots (one per step of
+ *  theirs, filled when done), and the next step as a suggestion ("Next?"), or that they are all set for now. */
 function nudge(saved) {
   const n = nextFor(me), box = $("nudge");
   if (!n) return;
   box.textContent = "";
-  if (saved) box.append(el("p", "nudgeOk", "✓ Saved"));
+  const top = el("p", "nudgeOk");
+  if (saved) top.append("✓ Saved");
+  const dots = el("span", "nudgeDots");
+  dots.setAttribute("aria-label", `${ownSteps(me).filter(Boolean).length} of ${ownSteps(me).length}`);
+  for (const ok of ownSteps(me)) dots.append(el("i", ok ? "on" : ""));
+  top.append(dots);
+  box.append(top);
   const close = el("button", "nudgeX", "✕"); close.type = "button"; close.setAttribute("aria-label", "Close");
   close.addEventListener("click", () => { box.hidden = true; });
   if (n.todo) {
     const s = allStops()[n.i];
     const go = el("button", "nudgeGo"); go.type = "button";
-    go.append(el("span", "nudgeLabel", "Next"), el("b", "", `${s.icon} ${s.title}`), el("span", "nudgeArrow", "›"));
+    go.append(el("span", "nudgeLabel", "Next?"), el("b", "", `${s.icon} ${s.title}`), el("span", "nudgeArrow", "›"));
     go.addEventListener("click", () => goTo(n.i));
     box.append(go, close);
   } else {
-    box.append(el("b", "nudgeDone", "✓ All done for now"), el("span", "nudgeLabel", n.end ? "We'll take it from here" : "We'll be in touch"), close);
+    box.append(el("b", "nudgeDone", n.end ? "✓ All set" : "✓ All set for now"), el("span", "nudgeLabel", n.end ? "Thank you" : "We'll be in touch"), close);
   }
   box.hidden = false;
   box.classList.remove("show"); void box.offsetWidth; box.classList.add("show");

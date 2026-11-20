@@ -298,10 +298,13 @@ body.paneOpen .albums { opacity: 0; pointer-events: none; }
 }
 .nudge.show { animation: nudgeIn .45s cubic-bezier(.2, .9, .3, 1.2); }
 @keyframes nudgeIn { from { transform: translate(-50%, 30px); opacity: 0; } }
-.nudgeOk { grid-column: 1 / -1; font-size: 13px; font-weight: 700; }
+.nudgeOk { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; }
+.nudgeDots { display: inline-flex; gap: 4px; }
+.nudgeDots i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; opacity: .5; }
+.nudgeDots i.on { background: currentColor; opacity: 1; }
 .nudgeGo { display: grid; grid-template-columns: 1fr auto; align-items: center; text-align: left; padding: 4px 0; color: inherit; }
 .nudgeGo b, .nudgeDone { font-size: 18px; line-height: 1.25; }
-.nudgeLabel { grid-column: 1; font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; opacity: .55; }
+.nudgeLabel { grid-column: 1; font-size: 12px; font-weight: 600; letter-spacing: .04em; opacity: .55; }
 .nudgeGo .nudgeArrow { grid-row: 1 / 3; grid-column: 2; font-size: 30px; line-height: 1; padding: 0 10px; animation: poke 1.2s ease-in-out infinite; }
 @keyframes poke { 50% { transform: translateX(5px); } }
 .nudgeDone { grid-column: 1; }

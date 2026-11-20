@@ -6,10 +6,10 @@ The :fouR website, in the :fouR look (black, white, heavy letters; `logo.png` an
 
 | Address | What it is | Files |
 |---|---|---|
-| `/` | The landing page: the logo, big, with three white labels (roadmap, contracts, invoices) that link to the pages, and the contact address (colonfour@proton.me) bottom right | `index.html` |
+| `/` | The landing page: the logo, big, with white labels on it that link to roadmap, contracts, invoices, about us and contact (an email to colonfour@proton.me) | `index.html` |
 | `/roadmap/` | The road to the dance meet and the available days | `roadmap/`, `config.js` |
 | `/contract-signer/` (also `/contracts`) | Upload a contract (PDF), sign it with your finger, send it | `contract-signer/` |
-| `/about/` (also `/about-us`) | About us: who we are, our question, until 2028 (linked bottom left on the landing page) | `about/index.html` |
+| `/about/` (also `/about-us`) | About us: who we are, our question, until 2028 | `about/index.html` |
 | `/invoices/` (also `/invoice`) | How we handle invoices for our dancers (one sentence for now) | `invoices/index.html` |
 
 The old GitHub address shows "Redirecting you to colon-four.netlify.app/roadmap", counts down 5 seconds and goes
@@ -52,9 +52,10 @@ Anyone with the page can upload, so keep the page's address to the people who ne
   song and artist under them. With two or more they take turns in front (every 4 seconds). Tap to slide the front
   cover out whole; tap again to tuck it back. **Add a song:** put a square picture in `roadmap/albums/` and a line in
   `ALBUMS` in `config.js`.
-- **One step after the other:** after each thing a dancer saves, a card slides up with **Next → that step** (one tap
-  opens it) and the next step on the road gets a pulsing ring. When only our steps are left (the call itself,
-  tickets, videographer), the card says **All done for now**. A dancer who comes back with something left to do gets
+- **One step after the other:** after each thing a dancer saves, a small card slides up: a row of dots (their steps,
+  filled when done) and **Next?** with the next step (one tap opens it); the next step on the road gets a pulsing
+  ring. Few words, never pushy. When only our steps are left (the call itself, tickets, videographer), it says
+  **All set for now**. A dancer who comes back with something left to do gets
   the card again.
 - **Tap a step** to see who is there. The dancer's steps (needs their username):
   **Book the video call** (one of the times you set, or they write one; a booked time is greyed for others),
