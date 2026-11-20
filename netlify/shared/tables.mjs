@@ -59,6 +59,13 @@ export function tables(db) {
           }
           console.warn(`[ROAD DATABASE] First fill done: ${FIRST_PEOPLE.length} people put in.`);
         }
+        // One time: let navarrete_aiide in (Nov 2026). They do not see bisaje_navarrete: HIDDEN in netlify/functions/road.mjs.
+        // Only once, so removing them later in the organiser's window sticks.
+        const added = await run(db.sql`INSERT INTO road_meta (name) VALUES ('add-navarrete_aiide') ON CONFLICT DO NOTHING RETURNING name`);
+        if (added.length) {
+          await run(db.sql`INSERT INTO road_people (who, name, done, days) VALUES ('navarrete_aiide', 'navarrete_aiide', 0, '[]') ON CONFLICT DO NOTHING`);
+          console.warn('[ROAD DATABASE] navarrete_aiide added.');
+        }
         // One time: the steps were put in a new order (Nov 2026). Old step number -> new step number:
         //   old 1 Days, 2 Games, 3 Day explained, 4 Video call, 5 Food, 6 Tickets, 7 Videographer, 8 Agreed
         //   new 1 Days, 2 Book the call, 3 Games, 4 Food, 5 Video call, 6 Agreed, 7 Tickets, 8 Videographer
