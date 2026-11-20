@@ -20,9 +20,10 @@ let PEOPLE = []; // the people from the database (read when the page loads): [{ 
 const API = "/api"; // the function netlify/functions/road.mjs
 let CALL_TIMES = [], TAKEN = []; // the times to book a video call (set by the organiser), and the ones already booked
 
-/** Read the road from the database: the people and the call times. */
-async function readRoad() {
-  const data = await api();
+/** Read the road from the database: the people and the call times, as this username sees it (none = as a guest:
+ *  some people are hidden from guests, see HIDDEN in netlify/functions/road.mjs). */
+async function readRoad(name = myName) {
+  const data = name ? await api({ action: "view", name }) : await api();
   PEOPLE = data.people || [];
   CALL_TIMES = data.callTimes || [];
   TAKEN = data.taken || [];
@@ -509,6 +510,7 @@ $("gateForm").addEventListener("submit", async (e) => {
   btn.disabled = true; $("gateError").textContent = "";
   try {
     const { person } = await api({ action: "check", name: typed }); // the database knows who is on the list
+    await readRoad(person.name).catch(() => {});                   // the road as this person sees it
     keep(person);
     const then = afterCode; afterCode = null;
     open(person.name);
@@ -521,7 +523,11 @@ $("gateForm").addEventListener("submit", async (e) => {
   }
 });
 
-$("leave").addEventListener("click", () => { store.del("availability.code"); myName = null; picked = new Set(); gather(); draw(); $("note").value = ""; });
+$("leave").addEventListener("click", async () => {
+  store.del("availability.code"); myName = null; picked = new Set(); $("note").value = "";
+  await readRoad().catch(() => {}); // back to what a guest sees
+  gather(); draw();
+});
 
 // ------------------------------ The email ------------------------------
 /** Send one email through Web3Forms: a subject, the lines { label: text } and the facts for the JSON line (what
@@ -685,7 +691,7 @@ pane(false);
   // Been here before on this phone: continue as you (if the database still knows the username)
   const before = store.get("availability.code");
   if (before) {
-    try { keep((await api({ action: "check", name: before })).person); myName = null; return open(before); }
+    try { const { person } = await api({ action: "check", name: before }); await readRoad(person.name); keep(person); myName = null; return open(before); }
     catch (err) { if (err.status === 403) store.del("availability.code"); }
   }
   gather();

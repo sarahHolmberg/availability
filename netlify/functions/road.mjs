@@ -5,7 +5,10 @@
  *
  * For everyone:
  *   GET                                  -> { people: [{ name, done, days, agreed }], callTimes, taken }
- *        only people who have started; callTimes = the times to book a video call, taken = the ones already booked
+ *        only people who have started; callTimes = the times to book a video call, taken = the ones already booked.
+ *        This is what a guest sees: the people in HIDDEN are left out.
+ *   POST { action: "view", name }        -> the same, as this person sees it (with the hidden people, unless the
+ *        person is in HIDDEN.from)
  *   POST { action: "check", name }       -> { person }    is this username on the list? (403 if not)
  *   POST { action: "days", name, days, note } -> { person }  save this person's free days (they are then on step 1 or further)
  *   POST { action: "answer", name, form: "call", "games" or "food", answer } -> { person }  save their answers to that step
@@ -37,6 +40,21 @@ const FORMS = {
   food: { pickKey: 'places', fields: ['order', 'soda'] },
 };
 const TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/; // a call time: "2026-11-25T18:00"
+
+// CHANGE HERE: people kept out of sight (usernames in small letters). Guests (no username typed yet) never see
+// anything of them: not on the road, not on the calendar, not on the agree step. Nor do the usernames in "from".
+// Everybody else who typed their username sees them as usual; the hidden person always sees themself.
+const HIDDEN = { people: ['bisaje_navarrete'], from: ['navarrete_aiide'] };
+
+/** The road as this viewer sees it (viewer = their row, or null for a guest). */
+async function roadFor(viewer) {
+  const seesHidden = !!viewer && !HIDDEN.from.includes(viewer.who);
+  const rows = (await run(db.sql`SELECT * FROM road_people WHERE done > 0 OR days <> '[]' ORDER BY created_at, who`))
+    .filter((r) => seesHidden || !HIDDEN.people.includes(r.who) || r.who === viewer?.who);
+  const all = await run(db.sql`SELECT call FROM road_people WHERE call IS NOT NULL`);
+  const taken = all.flatMap((r) => parse(r.call, {}).times || []); // booked times, without names
+  return { people: rows.map((r) => shape(r, false)), callTimes: await callTimes(), taken };
+}
 
 /** How far a person has got by themself: each of their steps counts once the one before it is done. */
 function reached(row) {
@@ -93,12 +111,7 @@ export default async (req) => {
   try {
     await ensureTables();
 
-    if (req.method === 'GET') {
-      const rows = await run(db.sql`SELECT * FROM road_people WHERE done > 0 OR days <> '[]' ORDER BY created_at, who`);
-      const all = await run(db.sql`SELECT call FROM road_people WHERE call IS NOT NULL`);
-      const taken = all.flatMap((r) => parse(r.call, {}).times || []);
-      return reply({ people: rows.map((r) => shape(r, false)), callTimes: await callTimes(), taken });
-    }
+    if (req.method === 'GET') return reply(await roadFor(null)); // a guest
     if (req.method !== 'POST') return reply({ error: 'Method not allowed.' }, 405);
     const body = await req.json().catch(() => ({}));
     const action = body.action;
@@ -148,6 +161,7 @@ export default async (req) => {
       return reply({ error: 'That username is not on the list.' }, 403);
     }
     if (action === 'check') return reply({ person: shape(row, true) });
+    if (action === 'view') return reply(await roadFor(row));
 
     if (action === 'days') {
       const days = cleanDays(body.days);

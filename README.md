@@ -72,6 +72,10 @@ Anyone with the page can upload, so keep the page's address to the people who ne
 - Every Send is saved in the database **and** emailed to you as a copy (Web3Forms).
 - The first time the site runs, the database is filled with the three people that were in the old `data.json`
   (`netlify/shared/tables.mjs`). After that, the database is what counts.
+- **Hidden people:** `bisaje_navarrete` is never shown to guests (anyone who has not typed a username) nor to the
+  username `navarrete_aiide`: not on the road, the calendar or the agree step. The server leaves them out, so they are
+  not in the page at all. Everybody else who typed their username sees them as usual. Change the lists in `HIDDEN` in
+  `netlify/functions/road.mjs`.
 - People who have not started (no days, step 0) are not shown to others, and their usernames are never sent to
   visitors.
 
