@@ -52,6 +52,10 @@ Anyone with the page can upload, so keep the page's address to the people who ne
   song and artist under them. With two or more they take turns in front (every 4 seconds). Tap to slide the front
   cover out whole; tap again to tuck it back. **Add a song:** put a square picture in `roadmap/albums/` and a line in
   `ALBUMS` in `config.js`.
+- **One step after the other:** after each thing a dancer saves, a card slides up with **Next → that step** (one tap
+  opens it) and the next step on the road gets a pulsing ring. When only our steps are left (the call itself,
+  tickets, videographer), the card says **All done for now**. A dancer who comes back with something left to do gets
+  the card again.
 - **Tap a step** to see who is there. The dancer's steps (needs their username):
   **Book the video call** (one of the times you set, or they write one; a booked time is greyed for others),
   **Games** (bowling, billiards, darts, or another game), **Food preference** (Max, McDonald's, Burger King, kebab;

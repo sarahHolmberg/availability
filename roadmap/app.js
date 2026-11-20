@@ -24,7 +24,10 @@ let CALL_TIMES = [], TAKEN = []; // the times to book a video call (set by the o
  *  some people are hidden from guests, see HIDDEN in netlify/functions/road.mjs). */
 async function readRoad(name = myName) {
   const data = name ? await api({ action: "view", name }) : await api();
+  const old = name && PEOPLE.find((p) => p.name.toLowerCase() === name.toLowerCase()); // your own answers are not in this list:
   PEOPLE = data.people || [];
+  const fresh = old && PEOPLE.find((p) => p.name.toLowerCase() === name.toLowerCase());  // keep them
+  if (fresh) for (const k of ["call", "games", "food", "note"]) if (old[k] !== undefined && fresh[k] === undefined) fresh[k] = old[k];
   CALL_TIMES = data.callTimes || [];
   TAKEN = data.taken || [];
 }
@@ -113,7 +116,7 @@ const stepName = (i) => (i ? `Step ${i} of ${STEPS.length}` : "Start");
 let panned = false; // has the page already panned to your step once?
 /** The stops of the road. Passed stops get a tick, the stop we are at NOW is the big green one, the rest is still grey. */
 function drawMap() {
-  const map = $("map"), now = nowAt(), stops = allStops();
+  const map = $("map"), now = nowAt(), stops = allStops(), next = nextFor(me);
   map.textContent = "";
   $("sub").textContent = me ? `Hi ${me.name}` : "";
 
@@ -129,7 +132,7 @@ function drawMap() {
   stops.forEach((s, i) => {
     const here = folk.filter((p) => p.done === i && (i > 0 || p === me) && !(s.agree && p.agreed)); // a person who has not started only shows to themselves; on the agree step, who agreed shows with a tick
     if (!me && i === 0) here.unshift({ name: "You", colour: "var(--go)", you: true }); // not typed a username yet: you stand at the start
-    const row = el("li", "stop " + (i % 2 ? "right" : "left") + (i < now ? " passed" : i === now ? " now" : ""));
+    const row = el("li", "stop " + (i % 2 ? "right" : "left") + (i < now ? " passed" : i === now ? " now" : "") + (next && next.todo && next.i === i ? " next" : ""));
     const btn = el("button"); btn.type = "button";
     btn.addEventListener("click", () => info(i));
     const pin = el("span", "pin", s.icon);
@@ -246,15 +249,16 @@ function answerForm(f) {
     if (!ticked.size && f.fields.every((x) => !answer[x.id])) { msg.textContent = "Tick or write something first."; return; }
     send.disabled = true; send.textContent = "Saving…"; msg.textContent = "";
     try {
-      keep((await api({ action: "answer", form: f.key, name: me.name, answer })).person); // saved in the database
+      const { person } = await api({ action: "answer", form: f.key, name: me.name, answer }); // saved in the database
+      if (f.key === "call") await readRoad().catch(() => {}); // the booked times change
+      keep(person); // after reading the road: your own answers only come with your own record
       const label = { call: "Time", food: "Picked", games: "Games" }[f.key];
       const picked = answer[f.pickKey].map((v) => (f.key === "call" ? timeWords(v) : v)).join(", ");
       const lines = { [label]: picked || "(nothing ticked)" };
       f.fields.forEach((x) => { lines[x.label] = answer[x.id] || "(not written)"; });
       mail(`${TITLE}: ${f.key === "call" ? "video call booked by" : f.key + " of"} ${me.name}`, lines, { [f.key]: answer }).catch(() => {}); // and a copy by email
-      if (f.key === "call") await readRoad().catch(() => {}); // the booked times change
-      justSaved = f.key;
-      gather(); draw(); // the road and this window are drawn again
+      gather(); closeInfo(); draw();
+      nudge(true); // on to the next step
     } catch (err) {
       msg.textContent = `Not saved: ${err.message || "no connection"}. Try again.`;
       if (err.status === 409) { await readRoad().catch(() => {}); gather(); }
@@ -287,12 +291,60 @@ function agreeBox(i) {
       try {
         keep((await api({ action: "agree", name: me.name })).person);
         mail(`${TITLE}: ${me.name} agreed`, { Agreed: "Yes" }, { agreed: true }).catch(() => {});
-        gather(); draw();
+        gather(); closeInfo(); draw();
+        nudge(true);
       } catch (err) { msg.textContent = `Not saved: ${err.message || "no connection"}. Try again.`; b.disabled = false; }
     });
     box.append(msg, b);
   }
   return box;
+}
+
+// ------------------------------ The nudge: after each step, on to the next ------------------------------
+// The dancer's own steps, in order. When the next one is ours (the call itself, tickets, videographer), they are done
+// for now and the card says so.
+const stepOf = (test) => STEPS.findIndex(test) + 1; // the stop number on the road (0 = Start)
+const AGREE = stepOf((s) => s.agree);
+
+/** What this person should do next: { todo: true, i: stop number }, or { wait: true } when it is our turn. */
+function nextFor(p) {
+  if (!p) return null;
+  if (!p.list.length) return { todo: true, i: 1 }; // Days shown
+  for (const key of ["call", "games", "food"]) if (!answered(p, key)) return { todo: true, i: stepOf((s) => s.form && s.form.key === key) };
+  if (p.done < AGREE - 1) return { wait: true };   // the video call: with us
+  if (!p.agreed) return { todo: true, i: AGREE };
+  return { wait: true, end: true };
+}
+
+/** The card at the bottom: "✓ Saved", then the next step (one tap opens it), or "all done for now". */
+function nudge(saved) {
+  const n = nextFor(me), box = $("nudge");
+  if (!n) return;
+  box.textContent = "";
+  if (saved) box.append(el("p", "nudgeOk", "✓ Saved"));
+  const close = el("button", "nudgeX", "✕"); close.type = "button"; close.setAttribute("aria-label", "Close");
+  close.addEventListener("click", () => { box.hidden = true; });
+  if (n.todo) {
+    const s = allStops()[n.i];
+    const go = el("button", "nudgeGo"); go.type = "button";
+    go.append(el("span", "nudgeLabel", "Next"), el("b", "", `${s.icon} ${s.title}`), el("span", "nudgeArrow", "›"));
+    go.addEventListener("click", () => goTo(n.i));
+    box.append(go, close);
+  } else {
+    box.append(el("b", "nudgeDone", "✓ All done for now"), el("span", "nudgeLabel", n.end ? "We'll take it from here" : "We'll be in touch"), close);
+  }
+  box.hidden = false;
+  box.classList.remove("show"); void box.offsetWidth; box.classList.add("show");
+}
+
+/** Open a step: the Days pane for the days, otherwise pan the road to the step and open its window. */
+function goTo(i) {
+  $("nudge").hidden = true;
+  closeInfo();
+  if (i === 1) return pane(true);
+  pane(false);
+  $("map").children[i]?.scrollIntoView({ behavior: calm.matches ? "auto" : "smooth", block: "center" });
+  setTimeout(() => info(i), calm.matches ? 0 : 450);
 }
 
 /** The line that joins the stops: it winds from circle to circle, solid green as far as upTo, dotted after that. */
@@ -515,6 +567,7 @@ $("gateForm").addEventListener("submit", async (e) => {
     const then = afterCode; afterCode = null;
     open(person.name);
     if (then) then();
+    else if (shownStep === null && nextFor(me)?.todo) nudge(false);
   } catch (err) {
     console.warn("[CODE] REFUSED:", typed, err.message);
     wrong(err.status === 403 ? "That username is not on the list. Check the spelling, or ask to be added." : `Could not check: ${err.message || "no connection"}. Try again.`);
@@ -576,8 +629,8 @@ async function sendDays() {
     keep((await api({ action: "days", name: me.name, days, note })).person); // saved in the database: everyone sees it
     mail(`${TITLE}: ${me.name} (${n} ${n === 1 ? "day" : "days"})`, lines, { days }).catch(() => {}); // and a copy by email
     gather(); draw();
-    $("doneText").textContent = n ? `${me.name} · ${n} ${n === 1 ? "day" : "days"}` : me.name;
-    $("done").hidden = false;
+    pane(false);
+    nudge(true); // on to the next step
   } catch (err) {
     $("sendError").textContent = `Not saved: ${err.message || "no connection"}. Your days are kept; try again.`;
   } finally {
@@ -691,7 +744,11 @@ pane(false);
   // Been here before on this phone: continue as you (if the database still knows the username)
   const before = store.get("availability.code");
   if (before) {
-    try { const { person } = await api({ action: "check", name: before }); await readRoad(person.name); keep(person); myName = null; return open(before); }
+    try {
+      const { person } = await api({ action: "check", name: before }); await readRoad(person.name); keep(person); myName = null; open(before);
+      if (nextFor(me)?.todo) setTimeout(() => nudge(false), 1300); // something left to do: point to it
+      return;
+    }
     catch (err) { if (err.status === 403) store.del("availability.code"); }
   }
   gather();
